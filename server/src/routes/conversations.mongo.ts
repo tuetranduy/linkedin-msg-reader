@@ -46,7 +46,7 @@ router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
         return
     }
 
-    const messageLimit = Math.min(parseInt(limit as string) || 50, 200)
+    const messageLimit = Math.min(parseInt(limit as string) || 50, 10000)
 
     // Build query for pagination
     const messageQuery: Record<string, unknown> = { conversation_id: id }

@@ -22,6 +22,7 @@ interface MessageContextType {
 
   // Lazy loading
   loadMoreMessages: () => Promise<void>;
+  loadAllMessages: () => Promise<void>;
   hasMoreMessages: boolean;
   isLoadingMore: boolean;
   totalMessageCount: number;
@@ -241,6 +242,46 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
     }
   }, [selectedConversation, hasMoreMessages, isLoadingMore]);
 
+  // Load all messages from beginning
+  const loadAllMessages = useCallback(async () => {
+    if (!selectedConversation || isLoadingMore) return;
+
+    setIsLoadingMore(true);
+    try {
+      // Load all messages at once with a high limit
+      const data = await apiClient<{
+        messages: ApiMessage[];
+        hasMore: boolean;
+      }>(
+        `/conversations/${selectedConversation.id}?limit=10000`,
+      );
+
+      const allMessages: Message[] = data.messages.map((m) => ({
+        id: m.id,
+        conversationId: m.conversation_id,
+        from: m.from_name,
+        to: m.to_name,
+        date: new Date(m.date),
+        content: m.content,
+        folder: m.folder,
+        attachments: [],
+      }));
+
+      setSelectedConversation((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          messages: allMessages,
+        };
+      });
+      setHasMoreMessages(false);
+    } catch (e) {
+      console.error("Failed to load all messages:", e);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [selectedConversation, isLoadingMore]);
+
   const selectConversation = useCallback((id: string) => {
     setSelectedConversationId(id);
     setHighlightedMessageId(null);
@@ -384,6 +425,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
         selectConversation,
         refreshConversations,
         loadMoreMessages,
+        loadAllMessages,
         hasMoreMessages,
         isLoadingMore,
         totalMessageCount,

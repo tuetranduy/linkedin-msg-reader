@@ -3,7 +3,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMessages } from "@/context/MessageContext";
 import { MessageBubble } from "./MessageBubble";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronsUp, Loader2 } from "lucide-react";
 import { formatDateSeparator, isSameDay } from "@/lib/utils";
 
 interface MessageItem {
@@ -18,6 +18,7 @@ export function MessageList() {
     highlightedMessageId,
     setHighlightedMessageId,
     loadMoreMessages,
+    loadAllMessages,
     hasMoreMessages,
     isLoadingMore,
     totalMessageCount,
@@ -138,6 +139,17 @@ export function MessageList() {
     });
   };
 
+  const goToBeginning = async () => {
+    await loadAllMessages();
+    // After loading all messages, scroll to top
+    setTimeout(() => {
+      virtualizer.scrollToIndex(0, {
+        align: "start",
+        behavior: "smooth",
+      });
+    }, 100);
+  };
+
   // Scroll to bottom on conversation change
   useEffect(() => {
     if (selectedConversation && !highlightedMessageId && items.length > 0) {
@@ -245,6 +257,19 @@ export function MessageList() {
           onClick={scrollToTop}
         >
           <ChevronUp className="h-5 w-5" />
+        </Button>
+      )}
+
+      {hasMoreMessages && (
+        <Button
+          variant="secondary"
+          size="sm"
+          className="absolute top-4 right-16 rounded-full shadow-lg px-3"
+          onClick={goToBeginning}
+          disabled={isLoadingMore}
+        >
+          <ChevronsUp className="h-4 w-4 mr-1" />
+          Beginning
         </Button>
       )}
 
