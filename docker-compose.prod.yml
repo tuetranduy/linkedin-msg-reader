@@ -5,12 +5,12 @@ services:
       dockerfile: Dockerfile
     container_name: linkedin-msg-frontend
     ports:
-      - "80:80"
+      - "3002:80"
     depends_on:
       - backend
     restart: unless-stopped
     networks:
-      - app-network
+      - linkedin-msg-network
 
   backend:
     build:
@@ -23,14 +23,14 @@ services:
       - MONGODB_URI=${MONGODB_URI}
       - JWT_SECRET=${JWT_SECRET:-change-this-in-production}
     volumes:
-      - backend_data:/app/data
+      - linkedin-msg-data:/app/data
     restart: unless-stopped
     networks:
-      - app-network
+      - linkedin-msg-network
 
 volumes:
-  backend_data:
+  linkedin-msg-data:
 
 networks:
-  app-network:
+  linkedin-msg-network:
     driver: bridge
