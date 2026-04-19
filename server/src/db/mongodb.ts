@@ -25,6 +25,11 @@ export async function connectDB(): Promise<Db> {
     await db.collection('bookmarks').createIndex({ user_id: 1 })
     await db.collection('bookmarks').createIndex({ user_id: 1, message_id: 1 }, { unique: true })
 
+    // Read rooms indexes
+    await db.collection('read_rooms').createIndex({ code: 1 }, { unique: true })
+    await db.collection('read_rooms').createIndex({ creator_id: 1 })
+    await db.collection('read_rooms').createIndex({ 'participants.user_id': 1 })
+
     // Create default admin if not exists
     const adminExists = await db.collection('users').findOne({ username: 'admin' })
     if (!adminExists) {

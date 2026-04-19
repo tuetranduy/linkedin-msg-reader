@@ -1,15 +1,24 @@
 import { useState, useEffect } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { MessageProvider, useMessages } from "./context/MessageContext";
+import { RoomProvider, useRoom } from "./context/RoomContext";
 import { ConversationList } from "./components/ConversationList";
 import { MessageList } from "./components/MessageList";
 import { SearchBar } from "./components/SearchBar";
 import { BookmarkPanel } from "./components/BookmarkPanel";
+import { RoomPanel } from "./components/RoomPanel";
+import { JoinRoomModal } from "./components/JoinRoomModal";
+import { CreateRoomModal } from "./components/CreateRoomModal";
 import { LoginForm } from "./components/auth/LoginForm";
 import { ChangePasswordModal } from "./components/auth/ChangePasswordModal";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { Button } from "./components/ui/button";
-import { TooltipProvider } from "./components/ui/tooltip";
+import {
+  TooltipProvider,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "./components/ui/tooltip";
 import { Sheet, SheetContent, SheetTitle } from "./components/ui/sheet";
 import { useIsMobile } from "./hooks/useMediaQuery";
 import {
@@ -24,6 +33,8 @@ import {
   ArrowLeft,
   Search,
   KeyRound,
+  Users,
+  UserPlus,
 } from "lucide-react";
 
 function AppContent() {
@@ -35,11 +46,15 @@ function AppContent() {
     isLoading,
     selectConversation,
   } = useMessages();
+  const { currentRoom, isInRoom, isConnected } = useRoom();
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showRoomPanel, setShowRoomPanel] = useState(false);
+  const [showJoinRoom, setShowJoinRoom] = useState(false);
+  const [showCreateRoom, setShowCreateRoom] = useState(false);
   const isMobile = useIsMobile();
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
@@ -195,6 +210,56 @@ function AppContent() {
             </Button>
           )}
 
+          {/* Room buttons */}
+          {isInRoom ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={() => setShowRoomPanel(!showRoomPanel)}
+                  className="relative"
+                >
+                  <Users className="h-5 w-5" />
+                  <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-green-500 text-[10px] text-white">
+                    {currentRoom?.participants.filter((p) => p.isOnline)
+                      .length || 0}
+                  </span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Room: {currentRoom?.code}</TooltipContent>
+            </Tooltip>
+          ) : (
+            <>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowCreateRoom(true)}
+                    disabled={!selectedConversation || !isConnected}
+                  >
+                    <Users className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Read Together</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowJoinRoom(true)}
+                    disabled={!isConnected}
+                  >
+                    <UserPlus className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Join Room</TooltipContent>
+              </Tooltip>
+            </>
+          )}
+
           <Button
             variant={showBookmarks ? "secondary" : "ghost"}
             size="icon"
@@ -260,6 +325,18 @@ function AppContent() {
       <ChangePasswordModal
         isOpen={showChangePassword}
         onClose={() => setShowChangePassword(false)}
+      />
+
+      {/* Room Modals */}
+      <CreateRoomModal
+        isOpen={showCreateRoom}
+        onClose={() => setShowCreateRoom(false)}
+        onCreated={() => setShowRoomPanel(true)}
+      />
+      <JoinRoomModal
+        isOpen={showJoinRoom}
+        onClose={() => setShowJoinRoom(false)}
+        onJoined={() => setShowRoomPanel(true)}
       />
 
       {/* Mobile search bar (expandable) */}
@@ -333,6 +410,29 @@ function AppContent() {
             onClose={() => setShowBookmarks(false)}
           />
         )}
+
+        {/* Room panel - Desktop sidebar or Mobile sheet */}
+        {isMobile ? (
+          <Sheet
+            open={showRoomPanel && isInRoom}
+            onOpenChange={setShowRoomPanel}
+          >
+            <SheetContent side="right" className="w-full max-w-xs p-0">
+              <SheetTitle className="sr-only">Read Together Room</SheetTitle>
+              <RoomPanel
+                isOpen={true}
+                onClose={() => setShowRoomPanel(false)}
+              />
+            </SheetContent>
+          </Sheet>
+        ) : (
+          isInRoom && (
+            <RoomPanel
+              isOpen={showRoomPanel}
+              onClose={() => setShowRoomPanel(false)}
+            />
+          )
+        )}
       </div>
     </div>
   );
@@ -355,7 +455,9 @@ function AuthenticatedApp() {
 
   return (
     <MessageProvider>
-      <AppContent />
+      <RoomProvider>
+        <AppContent />
+      </RoomProvider>
     </MessageProvider>
   );
 }

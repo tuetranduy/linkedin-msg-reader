@@ -1,10 +1,18 @@
 import React, { useRef, useEffect, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMessages } from "@/context/MessageContext";
+import { useRoom } from "@/context/RoomContext";
 import { MessageBubble } from "./MessageBubble";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, ChevronsUp, Loader2 } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  ChevronsUp,
+  Loader2,
+  Users,
+} from "lucide-react";
 import { formatDateSeparator, isSameDay } from "@/lib/utils";
+import type { RoomScrollSyncEvent } from "@/types/room";
 
 interface MessageItem {
   type: "message" | "date-separator";
@@ -25,9 +33,16 @@ export function MessageList() {
     loadingProgress,
     totalMessageCount,
   } = useMessages();
+  const { currentRoom, isInRoom, emitScroll, onScrollSync, offScrollSync } =
+    useRoom();
   const parentRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = React.useState(false);
   const [showScrollTopButton, setShowScrollTopButton] = React.useState(false);
+  const [syncController, setSyncController] = React.useState<string | null>(
+    null,
+  );
+  const isReceivingSyncRef = useRef(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Build items list with date separators
   const items: MessageItem[] = React.useMemo(() => {
@@ -132,11 +147,58 @@ export function MessageList() {
       if (isNearTop && hasMoreMessages && !isLoadingMore) {
         loadMoreMessages();
       }
+
+      // Emit scroll sync if in room with control and not receiving sync
+      if (
+        isInRoom &&
+        currentRoom?.canControl &&
+        !isReceivingSyncRef.current &&
+        selectedConversation
+      ) {
+        // Debounce scroll sync
+        if (scrollTimeoutRef.current) {
+          clearTimeout(scrollTimeoutRef.current);
+        }
+        scrollTimeoutRef.current = setTimeout(() => {
+          // Find the message that's currently in view (center of viewport)
+          const centerY = scrollTop + clientHeight / 2;
+          const virtualItems = virtualizer.getVirtualItems();
+          let visibleMessageId: string | null = null;
+
+          for (const item of virtualItems) {
+            if (item.start <= centerY && item.start + item.size >= centerY) {
+              const messageItem = items[item.index];
+              if (
+                messageItem.type === "message" &&
+                messageItem.messageIndex !== undefined
+              ) {
+                visibleMessageId =
+                  selectedConversation.messages[messageItem.messageIndex].id;
+                break;
+              }
+            }
+          }
+
+          if (visibleMessageId) {
+            emitScroll(visibleMessageId, scrollTop);
+          }
+        }, 100);
+      }
     };
 
     parent.addEventListener("scroll", handleScroll);
     return () => parent.removeEventListener("scroll", handleScroll);
-  }, [hasMoreMessages, isLoadingMore, loadMoreMessages]);
+  }, [
+    hasMoreMessages,
+    isLoadingMore,
+    loadMoreMessages,
+    isInRoom,
+    currentRoom?.canControl,
+    selectedConversation,
+    items,
+    virtualizer,
+    emitScroll,
+  ]);
 
   const scrollToBottom = () => {
     if (items.length > 0) {
@@ -164,6 +226,73 @@ export function MessageList() {
       });
     }, 100);
   };
+
+  // Listen for scroll sync events from room
+  useEffect(() => {
+    if (!isInRoom) {
+      setSyncController(null);
+      return;
+    }
+
+    const handleScrollSync = (event: RoomScrollSyncEvent) => {
+      if (!selectedConversation || !event.messageId) return;
+
+      // Don't sync if we have control
+      if (currentRoom?.canControl) return;
+
+      // Set flag to prevent emitting while receiving
+      isReceivingSyncRef.current = true;
+      setSyncController(event.from.username);
+
+      // Find the message index
+      const messageIndex = selectedConversation.messages.findIndex(
+        (m) => m.id === event.messageId,
+      );
+
+      if (messageIndex === -1) return;
+
+      // Find the item index (accounting for date separators)
+      let itemIndex = 0;
+      for (let i = 0; i < items.length; i++) {
+        if (
+          items[i].type === "message" &&
+          items[i].messageIndex === messageIndex
+        ) {
+          itemIndex = i;
+          break;
+        }
+      }
+
+      virtualizer.scrollToIndex(itemIndex, {
+        align: "center",
+        behavior: "smooth",
+      });
+
+      // Clear receiving flag after scroll settles
+      setTimeout(() => {
+        isReceivingSyncRef.current = false;
+      }, 500);
+
+      // Clear controller indicator after a delay
+      setTimeout(() => {
+        setSyncController(null);
+      }, 2000);
+    };
+
+    onScrollSync(handleScrollSync);
+
+    return () => {
+      offScrollSync();
+    };
+  }, [
+    isInRoom,
+    currentRoom?.canControl,
+    selectedConversation,
+    items,
+    virtualizer,
+    onScrollSync,
+    offScrollSync,
+  ]);
 
   // Scroll to bottom on conversation change
   useEffect(() => {
@@ -326,6 +455,28 @@ export function MessageList() {
       {hasMoreMessages && selectedConversation && (
         <div className="absolute top-4 left-4 text-xs text-muted-foreground bg-background/80 backdrop-blur-sm px-2 py-1 rounded">
           {selectedConversation.messages.length} / {totalMessageCount} messages
+        </div>
+      )}
+
+      {/* Room sync indicator */}
+      {isInRoom && (
+        <div className="absolute bottom-4 left-4 flex items-center gap-2 bg-background/90 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg border border-border">
+          <Users className="h-4 w-4 text-primary" />
+          <span className="text-xs">
+            {currentRoom?.canControl ? (
+              <span className="text-green-600 dark:text-green-400">
+                You control scroll
+              </span>
+            ) : syncController ? (
+              <span className="text-muted-foreground">
+                {syncController} is scrolling...
+              </span>
+            ) : (
+              <span className="text-muted-foreground">
+                Following room scroll
+              </span>
+            )}
+          </span>
         </div>
       )}
     </div>
