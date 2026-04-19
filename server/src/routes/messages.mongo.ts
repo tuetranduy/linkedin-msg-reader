@@ -85,7 +85,7 @@ router.post('/upload', authenticateToken, requireAdmin, upload.single('file'), a
         const title = (conv.title && conv.title !== 'Untitled')
             ? conv.title
             : participants.slice(0, 2).join(' & ') || 'Untitled'
-        
+
         conversationDocs.push({
             _id: convId as unknown,
             title,
