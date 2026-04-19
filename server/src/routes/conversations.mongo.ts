@@ -30,6 +30,7 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
 
 router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
     const { id } = req.params
+    const { limit = '50', before, after } = req.query
     const isAdmin = req.user?.role === 'admin'
     const db = getDB()
 
@@ -45,13 +46,37 @@ router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
         return
     }
 
+    const messageLimit = Math.min(parseInt(limit as string) || 50, 200)
+
+    // Build query for pagination
+    const messageQuery: Record<string, unknown> = { conversation_id: id }
+    let sortDirection: 1 | -1 = -1 // Default: newest first for initial load
+
+    if (before) {
+        // Load older messages (before this date)
+        messageQuery.date = { $lt: new Date(before as string) }
+        sortDirection = -1
+    } else if (after) {
+        // Load newer messages (after this date)
+        messageQuery.date = { $gt: new Date(after as string) }
+        sortDirection = 1
+    }
+
     const messages = await db.collection('messages')
         .find(
-            { conversation_id: id },
+            messageQuery,
             { projection: { _id: 1, conversation_id: 1, from_name: 1, to_name: 1, date: 1, content: 1, folder: 1, attachments: 1, sender_profile_url: 1 } }
         )
-        .sort({ date: 1 })
+        .sort({ date: sortDirection })
+        .limit(messageLimit)
         .toArray()
+
+    // Reverse if we fetched in descending order so messages are chronological
+    if (sortDirection === -1) {
+        messages.reverse()
+    }
+
+    const hasMore = messages.length === messageLimit
 
     res.json({
         conversation: {
@@ -72,7 +97,9 @@ router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
             folder: m.folder,
             attachments: m.attachments || [],
             isCurrentUser: (m.sender_profile_url || '').toLowerCase().includes('tuetranduy')
-        }))
+        })),
+        hasMore,
+        totalCount: conversation.message_count
     })
 })
 

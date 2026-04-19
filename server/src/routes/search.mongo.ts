@@ -63,10 +63,10 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Prom
 
     res.json({
         results: results.map(m => ({
-            id: m._id,
+            message_id: m._id,
             conversation_id: m.conversation_id,
             content: m.content,
-            sender: m.from_name,
+            from_name: m.from_name,
             date: m.date,
             conversation_title: m.conversation_title
         }))

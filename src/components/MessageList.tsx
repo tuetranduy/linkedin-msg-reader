@@ -3,7 +3,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMessages } from "@/context/MessageContext";
 import { MessageBubble } from "./MessageBubble";
 import { Button } from "@/components/ui/button";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { formatDateSeparator, isSameDay } from "@/lib/utils";
 
 interface MessageItem {
@@ -17,9 +17,14 @@ export function MessageList() {
     selectedConversation,
     highlightedMessageId,
     setHighlightedMessageId,
+    loadMoreMessages,
+    hasMoreMessages,
+    isLoadingMore,
+    totalMessageCount,
   } = useMessages();
   const parentRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = React.useState(false);
+  const [showScrollTopButton, setShowScrollTopButton] = React.useState(false);
 
   // Build items list with date separators
   const items: MessageItem[] = React.useMemo(() => {
@@ -103,12 +108,19 @@ export function MessageList() {
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = parent;
       const isNearBottom = scrollHeight - scrollTop - clientHeight < 200;
+      const isNearTop = scrollTop < 200;
       setShowScrollButton(!isNearBottom);
+      setShowScrollTopButton(!isNearTop && scrollTop > 400);
+
+      // Load more when scrolling near top
+      if (isNearTop && hasMoreMessages && !isLoadingMore) {
+        loadMoreMessages();
+      }
     };
 
     parent.addEventListener("scroll", handleScroll);
     return () => parent.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [hasMoreMessages, isLoadingMore, loadMoreMessages]);
 
   const scrollToBottom = () => {
     if (items.length > 0) {
@@ -117,6 +129,13 @@ export function MessageList() {
         behavior: "smooth",
       });
     }
+  };
+
+  const scrollToTop = () => {
+    virtualizer.scrollToIndex(0, {
+      align: "start",
+      behavior: "smooth",
+    });
   };
 
   // Scroll to bottom on conversation change
@@ -216,6 +235,32 @@ export function MessageList() {
         >
           <ChevronDown className="h-5 w-5" />
         </Button>
+      )}
+
+      {showScrollTopButton && (
+        <Button
+          variant="secondary"
+          size="icon"
+          className="absolute top-4 right-4 rounded-full shadow-lg"
+          onClick={scrollToTop}
+        >
+          <ChevronUp className="h-5 w-5" />
+        </Button>
+      )}
+
+      {isLoadingMore && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-background/80 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-lg">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span className="text-xs text-muted-foreground">
+            Loading older messages...
+          </span>
+        </div>
+      )}
+
+      {hasMoreMessages && selectedConversation && (
+        <div className="absolute top-4 left-4 text-xs text-muted-foreground bg-background/80 backdrop-blur-sm px-2 py-1 rounded">
+          {selectedConversation.messages.length} / {totalMessageCount} messages
+        </div>
       )}
     </div>
   );

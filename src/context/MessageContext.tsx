@@ -20,6 +20,12 @@ interface MessageContextType {
   selectConversation: (id: string) => void;
   refreshConversations: () => Promise<void>;
 
+  // Lazy loading
+  loadMoreMessages: () => Promise<void>;
+  hasMoreMessages: boolean;
+  isLoadingMore: boolean;
+  totalMessageCount: number;
+
   // Search
   searchQuery: string;
   setSearchQuery: (query: string) => void;
@@ -87,6 +93,11 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Lazy loading state
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [totalMessageCount, setTotalMessageCount] = useState(0);
+
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -151,12 +162,18 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!selectedConversationId) {
       setSelectedConversation(null);
+      setHasMoreMessages(false);
+      setTotalMessageCount(0);
       return;
     }
 
-    apiClient<{ conversation: ApiConversation; messages: ApiMessage[] }>(
-      `/conversations/${selectedConversationId}`,
-    )
+    setIsLoading(true);
+    apiClient<{
+      conversation: ApiConversation;
+      messages: ApiMessage[];
+      hasMore: boolean;
+      totalCount: number;
+    }>(`/conversations/${selectedConversationId}?limit=50`)
       .then((data) => {
         const messages: Message[] = data.messages.map((m) => ({
           id: m.id,
@@ -175,9 +192,54 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
           messages,
           lastMessageDate: new Date(data.conversation.last_message_date),
         });
+        setHasMoreMessages(data.hasMore);
+        setTotalMessageCount(data.totalCount);
       })
-      .catch(console.error);
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
   }, [selectedConversationId]);
+
+  // Load more messages (older messages)
+  const loadMoreMessages = useCallback(async () => {
+    if (!selectedConversation || !hasMoreMessages || isLoadingMore) return;
+
+    const oldestMessage = selectedConversation.messages[0];
+    if (!oldestMessage) return;
+
+    setIsLoadingMore(true);
+    try {
+      const data = await apiClient<{
+        messages: ApiMessage[];
+        hasMore: boolean;
+      }>(
+        `/conversations/${selectedConversation.id}?limit=50&before=${oldestMessage.date.toISOString()}`,
+      );
+
+      const olderMessages: Message[] = data.messages.map((m) => ({
+        id: m.id,
+        conversationId: m.conversation_id,
+        from: m.from_name,
+        to: m.to_name,
+        date: new Date(m.date),
+        content: m.content,
+        folder: m.folder,
+        attachments: [],
+      }));
+
+      setSelectedConversation((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          messages: [...olderMessages, ...prev.messages],
+        };
+      });
+      setHasMoreMessages(data.hasMore);
+    } catch (e) {
+      console.error("Failed to load more messages:", e);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [selectedConversation, hasMoreMessages, isLoadingMore]);
 
   const selectConversation = useCallback((id: string) => {
     setSelectedConversationId(id);
@@ -321,6 +383,10 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
         error,
         selectConversation,
         refreshConversations,
+        loadMoreMessages,
+        hasMoreMessages,
+        isLoadingMore,
+        totalMessageCount,
         searchQuery,
         setSearchQuery,
         searchResults,
