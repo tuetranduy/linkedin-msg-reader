@@ -59,7 +59,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Prom
         }
     )
 
-    const results = await db.collection('messages').aggregate(pipeline).toArray()
+    const results = await db.collection('messages').aggregate(pipeline, { allowDiskUse: true }).toArray()
 
     res.json({
         results: results.map(m => ({

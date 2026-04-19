@@ -33,7 +33,7 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
                 conversation_title: '$conversation.title'
             }
         }
-    ]).toArray()
+    ], { allowDiskUse: true }).toArray()
 
     res.json({
         bookmarks: bookmarks.map(b => ({

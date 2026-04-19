@@ -18,7 +18,9 @@ export async function connectDB(): Promise<Db> {
     // Create indexes
     await db.collection('users').createIndex({ username: 1 }, { unique: true })
     await db.collection('messages').createIndex({ conversation_id: 1 })
+    await db.collection('messages').createIndex({ date: -1 })
     await db.collection('messages').createIndex({ content: 'text', from_name: 'text' })
+    await db.collection('conversations').createIndex({ last_message_date: -1 })
     await db.collection('bookmarks').createIndex({ user_id: 1 })
     await db.collection('bookmarks').createIndex({ user_id: 1, message_id: 1 }, { unique: true })
 
