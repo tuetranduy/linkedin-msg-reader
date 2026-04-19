@@ -36,8 +36,10 @@ interface MessageContextType {
   currentSearchIndex: number;
   goToNextResult: () => void;
   goToPrevResult: () => void;
+  goToSearchResult: (result: SearchResult) => void;
   highlightedMessageId: string | null;
   setHighlightedMessageId: (id: string | null) => void;
+  isSearching: boolean;
 
   // Bookmarks
   bookmarks: Bookmark[];
@@ -110,6 +112,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
   const [highlightedMessageId, setHighlightedMessageId] = useState<
     string | null
   >(null);
+  const [isSearching, setIsSearching] = useState(false);
 
   // Bookmarks state
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
@@ -337,6 +340,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Debounce search
+    setIsSearching(true);
     searchTimeoutRef.current = setTimeout(async () => {
       try {
         const data = await apiClient<{
@@ -369,14 +373,10 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
 
         setSearchResults(results);
         setCurrentSearchIndex(0);
-
-        // Auto-navigate to first result
-        if (results.length > 0) {
-          setSelectedConversationId(results[0].conversationId);
-          setHighlightedMessageId(results[0].messageId);
-        }
       } catch (e) {
         console.error("Search failed:", e);
+      } finally {
+        setIsSearching(false);
       }
     }, 300);
 
@@ -406,12 +406,27 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
     setHighlightedMessageId(result.messageId);
   }, [searchResults, currentSearchIndex]);
 
+  const goToSearchResult = useCallback((result: SearchResult) => {
+    const resultIndex = searchResults.findIndex(r => r.messageId === result.messageId);
+    if (resultIndex !== -1) {
+      setCurrentSearchIndex(resultIndex);
+    }
+    setSelectedConversationId(result.conversationId);
+    setHighlightedMessageId(result.messageId);
+  }, [searchResults]);
+
   // Bookmark functionality - server-persisted
   const addBookmark = useCallback(async (message: Message) => {
     try {
       await apiClient("/bookmarks", {
         method: "POST",
-        body: JSON.stringify({ messageId: message.id }),
+        body: JSON.stringify({
+          messageId: message.id,
+          conversationId: message.conversationId,
+          content: message.content,
+          from: message.from,
+          date: message.date,
+        }),
       });
       const bookmark: Bookmark = {
         messageId: message.id,
@@ -470,8 +485,10 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
         currentSearchIndex,
         goToNextResult,
         goToPrevResult,
+        goToSearchResult,
         highlightedMessageId,
         setHighlightedMessageId,
+        isSearching,
         bookmarks,
         addBookmark,
         removeBookmark,

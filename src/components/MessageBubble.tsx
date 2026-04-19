@@ -206,8 +206,8 @@ export function MessageBubble({
             message.isCurrentUser
               ? "bg-primary text-primary-foreground rounded-br-md"
               : participantIndex === 0
-                ? "bg-emerald-100 dark:bg-emerald-900/40 rounded-bl-md"
-                : "bg-orange-100 dark:bg-orange-900/40 rounded-bl-md",
+                ? "bg-slate-200 dark:bg-slate-700 rounded-bl-md"
+                : "bg-violet-100 dark:bg-violet-900/50 rounded-bl-md",
           )}
         >
           {showAvatar && !message.isCurrentUser && (
