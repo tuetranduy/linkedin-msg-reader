@@ -66,9 +66,9 @@ db.exec(`
 // Create default admin if no users exist
 const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number }
 if (userCount.count === 0) {
-  const passwordHash = bcrypt.hashSync('admin123', 12)
-  db.prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)').run('admin', passwordHash, 'admin')
-  console.log('Created default admin user: admin/admin123')
+    const passwordHash = bcrypt.hashSync('admin123', 12)
+    db.prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)').run('admin', passwordHash, 'admin')
+    console.log('Created default admin user: admin/admin123')
 }
 
 export default db

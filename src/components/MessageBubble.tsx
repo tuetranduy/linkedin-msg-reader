@@ -18,10 +18,25 @@ import { cn, formatMessageTime, isUrl, isImageUrl } from "@/lib/utils";
 
 // Configure DOMPurify for safe HTML rendering
 const purifyConfig = {
-  ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'p', 'br', 'ul', 'ol', 'li', 'span', 'div', 'code', 'pre'],
-  ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
+  ALLOWED_TAGS: [
+    "b",
+    "i",
+    "em",
+    "strong",
+    "a",
+    "p",
+    "br",
+    "ul",
+    "ol",
+    "li",
+    "span",
+    "div",
+    "code",
+    "pre",
+  ],
+  ALLOWED_ATTR: ["href", "target", "rel", "class"],
   ALLOW_DATA_ATTR: false,
-  ADD_ATTR: ['target'],
+  ADD_ATTR: ["target"],
 };
 
 // Check if content contains HTML tags
@@ -67,7 +82,10 @@ export function MessageBubble({
 
     // If content contains HTML, sanitize and render it
     if (containsHtml(content)) {
-      let sanitizedHtml = DOMPurify.sanitize(content, { ...purifyConfig, RETURN_TRUSTED_TYPE: false }) as string;
+      let sanitizedHtml = DOMPurify.sanitize(content, {
+        ...purifyConfig,
+        RETURN_TRUSTED_TYPE: false,
+      }) as string;
 
       // Apply search highlighting to sanitized HTML
       if (searchQuery.trim()) {

@@ -9,11 +9,20 @@ import { LoginForm } from "./components/auth/LoginForm";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { Button } from "./components/ui/button";
 import { TooltipProvider } from "./components/ui/tooltip";
-import { Bookmark, Moon, Sun, MessageSquare, Settings, LogOut, Loader2 } from "lucide-react";
+import {
+  Bookmark,
+  Moon,
+  Sun,
+  MessageSquare,
+  Settings,
+  LogOut,
+  Loader2,
+} from "lucide-react";
 
 function AppContent() {
   const { isAdmin, logout } = useAuth();
-  const { conversations, selectedConversation, bookmarks, isLoading } = useMessages();
+  const { conversations, selectedConversation, bookmarks, isLoading } =
+    useMessages();
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
@@ -61,12 +70,24 @@ function AppContent() {
           </div>
           <div className="flex items-center gap-2">
             {isAdmin && (
-              <Button variant="outline" size="sm" onClick={() => setShowAdmin(true)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAdmin(true)}
+              >
                 <Settings className="h-4 w-4 mr-1" /> Admin
               </Button>
             )}
-            <Button variant="ghost" size="icon" onClick={() => setDarkMode(!darkMode)}>
-              {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setDarkMode(!darkMode)}
+            >
+              {darkMode ? (
+                <Sun className="h-5 w-5" />
+              ) : (
+                <Moon className="h-5 w-5" />
+              )}
             </Button>
             <Button variant="ghost" size="sm" onClick={logout}>
               <LogOut className="h-4 w-4 mr-1" /> Logout
@@ -76,7 +97,9 @@ function AppContent() {
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center">
             <MessageSquare className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
-            <h2 className="text-xl font-semibold mb-2">No conversations available</h2>
+            <h2 className="text-xl font-semibold mb-2">
+              No conversations available
+            </h2>
             <p className="text-muted-foreground">
               {isAdmin
                 ? "Go to Admin Dashboard to upload messages."
@@ -125,12 +148,25 @@ function AppContent() {
             )}
           </Button>
           {isAdmin && (
-            <Button variant="outline" size="icon" onClick={() => setShowAdmin(true)} title="Admin">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setShowAdmin(true)}
+              title="Admin"
+            >
               <Settings className="h-5 w-5" />
             </Button>
           )}
-          <Button variant="ghost" size="icon" onClick={() => setDarkMode(!darkMode)}>
-            {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setDarkMode(!darkMode)}
+          >
+            {darkMode ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
           </Button>
           <Button variant="ghost" size="sm" onClick={logout}>
             <LogOut className="h-4 w-4 mr-1" /> Logout

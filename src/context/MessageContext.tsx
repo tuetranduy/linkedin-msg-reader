@@ -79,8 +79,11 @@ interface ApiBookmark {
 
 export function MessageProvider({ children }: { children: React.ReactNode }) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [selectedConversationId, setSelectedConversationId] = useState<
+    string | null
+  >(null);
+  const [selectedConversation, setSelectedConversation] =
+    useState<Conversation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -88,7 +91,9 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
-  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<
+    string | null
+  >(null);
 
   // Bookmarks state
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
@@ -98,8 +103,10 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await apiClient<{ conversations: ApiConversation[] }>('/conversations');
-      const convos: Conversation[] = data.conversations.map(c => ({
+      const data = await apiClient<{ conversations: ApiConversation[] }>(
+        "/conversations",
+      );
+      const convos: Conversation[] = data.conversations.map((c) => ({
         id: c.id,
         title: c.title,
         participants: c.participants,
@@ -123,16 +130,18 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
 
   // Load bookmarks on mount
   useEffect(() => {
-    apiClient<{ bookmarks: ApiBookmark[] }>('/bookmarks')
-      .then(data => {
-        setBookmarks(data.bookmarks.map(b => ({
-          messageId: b.message_id,
-          conversationId: b.conversation_id,
-          content: b.content,
-          from: b.from_name,
-          date: new Date(b.message_date),
-          createdAt: new Date(b.created_at),
-        })));
+    apiClient<{ bookmarks: ApiBookmark[] }>("/bookmarks")
+      .then((data) => {
+        setBookmarks(
+          data.bookmarks.map((b) => ({
+            messageId: b.message_id,
+            conversationId: b.conversation_id,
+            content: b.content,
+            from: b.from_name,
+            date: new Date(b.message_date),
+            createdAt: new Date(b.created_at),
+          })),
+        );
       })
       .catch(console.error);
   }, []);
@@ -145,10 +154,10 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
     }
 
     apiClient<{ conversation: ApiConversation; messages: ApiMessage[] }>(
-      `/conversations/${selectedConversationId}`
+      `/conversations/${selectedConversationId}`,
     )
-      .then(data => {
-        const messages: Message[] = data.messages.map(m => ({
+      .then((data) => {
+        const messages: Message[] = data.messages.map((m) => ({
           id: m.id,
           conversationId: m.conversation_id,
           from: m.from_name,
@@ -191,14 +200,16 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
     // Debounce search
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-        const data = await apiClient<{ results: Array<{
-          conversation_id: string;
-          conversation_title: string;
-          message_id: string;
-          from_name: string;
-          content: string;
-          date: string;
-        }> }>(`/search?q=${encodeURIComponent(searchQuery)}`);
+        const data = await apiClient<{
+          results: Array<{
+            conversation_id: string;
+            conversation_title: string;
+            message_id: string;
+            from_name: string;
+            content: string;
+            date: string;
+          }>;
+        }>(`/search?q=${encodeURIComponent(searchQuery)}`);
 
         const results: SearchResult[] = data.results.map((r, index) => ({
           conversationId: r.conversation_id,
@@ -209,10 +220,10 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
             id: r.message_id,
             conversationId: r.conversation_id,
             from: r.from_name,
-            to: '',
+            to: "",
             date: new Date(r.date),
             content: r.content,
-            folder: '',
+            folder: "",
           },
         }));
 
@@ -225,7 +236,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
           setHighlightedMessageId(results[0].messageId);
         }
       } catch (e) {
-        console.error('Search failed:', e);
+        console.error("Search failed:", e);
       }
     }, 300);
 
@@ -258,8 +269,8 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
   // Bookmark functionality - server-persisted
   const addBookmark = useCallback(async (message: Message) => {
     try {
-      await apiClient('/bookmarks', {
-        method: 'POST',
+      await apiClient("/bookmarks", {
+        method: "POST",
         body: JSON.stringify({ messageId: message.id }),
       });
       const bookmark: Bookmark = {
@@ -272,16 +283,16 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
       };
       setBookmarks((prev) => [bookmark, ...prev]);
     } catch (e) {
-      console.error('Failed to add bookmark:', e);
+      console.error("Failed to add bookmark:", e);
     }
   }, []);
 
   const removeBookmark = useCallback(async (messageId: string) => {
     try {
-      await apiClient(`/bookmarks/${messageId}`, { method: 'DELETE' });
+      await apiClient(`/bookmarks/${messageId}`, { method: "DELETE" });
       setBookmarks((prev) => prev.filter((b) => b.messageId !== messageId));
     } catch (e) {
-      console.error('Failed to remove bookmark:', e);
+      console.error("Failed to remove bookmark:", e);
     }
   }, []);
 

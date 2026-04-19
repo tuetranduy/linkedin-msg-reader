@@ -28,15 +28,15 @@ app.use('/api/search', searchRoutes)
 
 // Health check
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok' })
+    res.json({ status: 'ok' })
 })
 
 // Error handler
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error(err.stack)
-  res.status(500).json({ error: 'Internal server error' })
+    console.error(err.stack)
+    res.status(500).json({ error: 'Internal server error' })
 })
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`)
+    console.log(`Server running on http://localhost:${PORT}`)
 })

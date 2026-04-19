@@ -1,29 +1,29 @@
-import { useState } from 'react'
-import { useAuth } from '@/context/AuthContext'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { MessageSquare, LogIn } from 'lucide-react'
+import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { MessageSquare, LogIn } from "lucide-react";
 
 export function LoginForm() {
-  const { login } = useAuth()
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const { login } = useAuth();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setIsLoading(true)
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
     try {
-      await login(username, password)
+      await login(username, password);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed')
+      setError(err instanceof Error ? err.message : "Login failed");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -73,7 +73,7 @@ export function LoginForm() {
 
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? (
-              'Signing in...'
+              "Signing in..."
             ) : (
               <>
                 <LogIn className="h-4 w-4 mr-2" />
@@ -88,5 +88,5 @@ export function LoginForm() {
         </p>
       </div>
     </div>
-  )
+  );
 }

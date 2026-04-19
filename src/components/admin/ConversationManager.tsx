@@ -1,75 +1,82 @@
-import { useState, useEffect, useCallback } from 'react'
-import { apiClient } from '@/api/client'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Eye, EyeOff, Users, Search } from 'lucide-react'
+import { useState, useEffect, useCallback } from "react";
+import { apiClient } from "@/api/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Eye, EyeOff, Users, Search } from "lucide-react";
 
 interface Conversation {
-  id: string
-  title: string
-  participants: string[]
-  message_count: number
-  last_message_date: string
-  isVisible: boolean
+  id: string;
+  title: string;
+  participants: string[];
+  message_count: number;
+  last_message_date: string;
+  isVisible: boolean;
 }
 
 export function ConversationManager() {
-  const [conversations, setConversations] = useState<Conversation[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [filter, setFilter] = useState('')
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [filter, setFilter] = useState("");
 
   const loadConversations = useCallback(async () => {
     try {
-      const data = await apiClient<{ conversations: Conversation[] }>('/conversations')
-      setConversations(data.conversations)
+      const data = await apiClient<{ conversations: Conversation[] }>(
+        "/conversations",
+      );
+      setConversations(data.conversations);
     } catch (err) {
-      console.error('Failed to load conversations:', err)
+      console.error("Failed to load conversations:", err);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    loadConversations()
-  }, [loadConversations])
+    loadConversations();
+  }, [loadConversations]);
 
   const toggleVisibility = async (id: string, currentVisibility: boolean) => {
     try {
       await apiClient(`/conversations/${id}/visibility`, {
-        method: 'PUT',
+        method: "PUT",
         body: JSON.stringify({ isVisible: !currentVisibility }),
-      })
-      setConversations(prev => 
-        prev.map(c => c.id === id ? { ...c, isVisible: !currentVisibility } : c)
-      )
+      });
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === id ? { ...c, isVisible: !currentVisibility } : c,
+        ),
+      );
     } catch (err) {
-      console.error('Failed to update visibility:', err)
+      console.error("Failed to update visibility:", err);
     }
-  }
+  };
 
   const setAllVisibility = async (isVisible: boolean) => {
     try {
       await Promise.all(
         conversations.map((c) =>
           apiClient(`/conversations/${c.id}/visibility`, {
-            method: 'PUT',
+            method: "PUT",
             body: JSON.stringify({ isVisible }),
-          })
-        )
-      )
-      setConversations(prev => prev.map(c => ({ ...c, isVisible })))
+          }),
+        ),
+      );
+      setConversations((prev) => prev.map((c) => ({ ...c, isVisible })));
     } catch (err) {
-      console.error('Failed to update visibility:', err)
+      console.error("Failed to update visibility:", err);
     }
-  }
+  };
 
-  const filteredConversations = conversations.filter(c => 
-    c.title.toLowerCase().includes(filter.toLowerCase()) ||
-    c.participants.some(p => p.toLowerCase().includes(filter.toLowerCase()))
-  )
+  const filteredConversations = conversations.filter(
+    (c) =>
+      c.title.toLowerCase().includes(filter.toLowerCase()) ||
+      c.participants.some((p) =>
+        p.toLowerCase().includes(filter.toLowerCase()),
+      ),
+  );
 
   if (isLoading) {
-    return <div className="p-4">Loading conversations...</div>
+    return <div className="p-4">Loading conversations...</div>;
   }
 
   if (conversations.length === 0) {
@@ -78,10 +85,10 @@ export function ConversationManager() {
         <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
         <p>No conversations yet. Upload a CSV file first.</p>
       </div>
-    )
+    );
   }
 
-  const visibleCount = conversations.filter((c) => c.isVisible).length
+  const visibleCount = conversations.filter((c) => c.isVisible).length;
 
   return (
     <div className="space-y-4">
@@ -93,10 +100,18 @@ export function ConversationManager() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setAllVisibility(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setAllVisibility(true)}
+          >
             <Eye className="h-4 w-4 mr-1" /> Show All
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setAllVisibility(false)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setAllVisibility(false)}
+          >
             <EyeOff className="h-4 w-4 mr-1" /> Hide All
           </Button>
         </div>
@@ -126,18 +141,22 @@ export function ConversationManager() {
             {filteredConversations.map((conv) => (
               <tr key={conv.id} className="border-t hover:bg-muted/50">
                 <td className="px-4 py-2">
-                  <div className="font-medium truncate max-w-[300px]">{conv.title}</div>
+                  <div className="font-medium truncate max-w-[300px]">
+                    {conv.title}
+                  </div>
                   <div className="text-xs text-muted-foreground truncate max-w-[300px]">
-                    {conv.participants.join(', ')}
+                    {conv.participants.join(", ")}
                   </div>
                 </td>
-                <td className="px-4 py-2 text-center text-sm">{conv.message_count}</td>
+                <td className="px-4 py-2 text-center text-sm">
+                  {conv.message_count}
+                </td>
                 <td className="px-4 py-2 text-center text-sm text-muted-foreground">
                   {new Date(conv.last_message_date).toLocaleDateString()}
                 </td>
                 <td className="px-4 py-2 text-center">
                   <Button
-                    variant={conv.isVisible ? 'default' : 'ghost'}
+                    variant={conv.isVisible ? "default" : "ghost"}
                     size="sm"
                     onClick={() => toggleVisibility(conv.id, conv.isVisible)}
                   >
@@ -154,5 +173,5 @@ export function ConversationManager() {
         </table>
       </div>
     </div>
-  )
+  );
 }
