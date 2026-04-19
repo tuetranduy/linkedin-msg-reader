@@ -40,6 +40,7 @@ interface MessageContextType {
   highlightedMessageId: string | null;
   setHighlightedMessageId: (id: string | null) => void;
   isSearching: boolean;
+  isNavigatingToMessage: boolean;
 
   // Bookmarks
   bookmarks: Bookmark[];
@@ -113,6 +114,12 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
     string | null
   >(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [isNavigatingToMessage, setIsNavigatingToMessage] = useState(false);
+  const [pendingMessageNavigation, setPendingMessageNavigation] = useState<{
+    conversationId: string;
+    messageId: string;
+    messageDate: Date;
+  } | null>(null);
 
   // Bookmarks state
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
@@ -206,6 +213,97 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
       .catch(console.error)
       .finally(() => setIsLoadingConversation(false));
   }, [selectedConversationId]);
+
+  // Handle pending message navigation - load messages until we find the target
+  useEffect(() => {
+    if (!pendingMessageNavigation || !selectedConversation) return;
+    if (selectedConversation.id !== pendingMessageNavigation.conversationId)
+      return;
+    if (isLoadingConversation) return;
+
+    const targetMessageId = pendingMessageNavigation.messageId;
+    const targetDate = pendingMessageNavigation.messageDate;
+
+    // Check if message is already loaded
+    const messageExists = selectedConversation.messages.some(
+      (m) => m.id === targetMessageId,
+    );
+
+    if (messageExists) {
+      // Message found, highlight it
+      setHighlightedMessageId(targetMessageId);
+      setPendingMessageNavigation(null);
+      setIsNavigatingToMessage(false);
+      return;
+    }
+
+    // Message not found, need to load more messages
+    // Load messages around the target date
+    const loadMessagesUntilFound = async () => {
+      setIsNavigatingToMessage(true);
+      let found = false;
+      let currentMessages = [...selectedConversation.messages];
+      let hasMore = true;
+
+      while (!found && hasMore) {
+        const oldestMessage = currentMessages[0];
+        if (!oldestMessage) break;
+
+        // If the oldest loaded message is older than our target, the message should be in our range
+        if (oldestMessage.date <= targetDate) {
+          // Message should be in range but not found - it might have been deleted
+          break;
+        }
+
+        try {
+          const data = await apiClient<{
+            messages: ApiMessage[];
+            hasMore: boolean;
+          }>(
+            `/conversations/${selectedConversation.id}?limit=500&before=${oldestMessage.date.toISOString()}`,
+          );
+
+          const olderMessages: Message[] = data.messages.map((m) => ({
+            id: m.id,
+            conversationId: m.conversation_id,
+            from: m.from_name,
+            to: m.to_name,
+            date: new Date(m.date),
+            content: m.content,
+            folder: m.folder,
+            attachments: [],
+          }));
+
+          currentMessages = [...olderMessages, ...currentMessages];
+          hasMore = data.hasMore;
+
+          // Check if target message is now in our loaded messages
+          found = olderMessages.some((m) => m.id === targetMessageId);
+
+          // Update conversation with new messages
+          setSelectedConversation((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              messages: currentMessages,
+            };
+          });
+          setHasMoreMessages(data.hasMore);
+        } catch (e) {
+          console.error("Failed to load messages:", e);
+          break;
+        }
+      }
+
+      if (found) {
+        setHighlightedMessageId(targetMessageId);
+      }
+      setPendingMessageNavigation(null);
+      setIsNavigatingToMessage(false);
+    };
+
+    loadMessagesUntilFound();
+  }, [pendingMessageNavigation, selectedConversation, isLoadingConversation]);
 
   // Load more messages (older messages)
   const loadMoreMessages = useCallback(async () => {
@@ -392,8 +490,13 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
     const nextIndex = (currentSearchIndex + 1) % searchResults.length;
     setCurrentSearchIndex(nextIndex);
     const result = searchResults[nextIndex];
+    setIsNavigatingToMessage(true);
+    setPendingMessageNavigation({
+      conversationId: result.conversationId,
+      messageId: result.messageId,
+      messageDate: result.message.date,
+    });
     setSelectedConversationId(result.conversationId);
-    setHighlightedMessageId(result.messageId);
   }, [searchResults, currentSearchIndex]);
 
   const goToPrevResult = useCallback(() => {
@@ -402,8 +505,13 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
       (currentSearchIndex - 1 + searchResults.length) % searchResults.length;
     setCurrentSearchIndex(prevIndex);
     const result = searchResults[prevIndex];
+    setIsNavigatingToMessage(true);
+    setPendingMessageNavigation({
+      conversationId: result.conversationId,
+      messageId: result.messageId,
+      messageDate: result.message.date,
+    });
     setSelectedConversationId(result.conversationId);
-    setHighlightedMessageId(result.messageId);
   }, [searchResults, currentSearchIndex]);
 
   const goToSearchResult = useCallback(
@@ -414,8 +522,13 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
       if (resultIndex !== -1) {
         setCurrentSearchIndex(resultIndex);
       }
+      setIsNavigatingToMessage(true);
+      setPendingMessageNavigation({
+        conversationId: result.conversationId,
+        messageId: result.messageId,
+        messageDate: result.message.date,
+      });
       setSelectedConversationId(result.conversationId);
-      setHighlightedMessageId(result.messageId);
     },
     [searchResults],
   );
@@ -464,8 +577,13 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
   );
 
   const goToBookmark = useCallback((bookmark: Bookmark) => {
+    setIsNavigatingToMessage(true);
+    setPendingMessageNavigation({
+      conversationId: bookmark.conversationId,
+      messageId: bookmark.messageId,
+      messageDate: bookmark.date,
+    });
     setSelectedConversationId(bookmark.conversationId);
-    setHighlightedMessageId(bookmark.messageId);
   }, []);
 
   return (
@@ -494,6 +612,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
         highlightedMessageId,
         setHighlightedMessageId,
         isSearching,
+        isNavigatingToMessage,
         bookmarks,
         addBookmark,
         removeBookmark,

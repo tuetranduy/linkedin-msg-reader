@@ -275,8 +275,8 @@ export function MessageBubble({
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100",
-                  bookmarked && "opacity-100",
+                  "h-6 w-6 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100",
+                  bookmarked && "!opacity-100",
                 )}
                 onClick={toggleBookmark}
               >

@@ -64,9 +64,11 @@ export function SearchBar() {
     goToPrevResult,
     goToSearchResult,
     isSearching,
+    isNavigatingToMessage,
   } = useMessages();
 
   const [showDropdown, setShowDropdown] = useState(false);
+  const [clickedResultId, setClickedResultId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -95,9 +97,17 @@ export function SearchBar() {
     }
   }, [hasResults, hasQuery]);
 
+  // Clear clicked result when navigation completes
+  useEffect(() => {
+    if (!isNavigatingToMessage && clickedResultId) {
+      setClickedResultId(null);
+      setShowDropdown(false);
+    }
+  }, [isNavigatingToMessage, clickedResultId]);
+
   const handleResultClick = (result: (typeof searchResults)[0]) => {
+    setClickedResultId(result.messageId);
     goToSearchResult(result);
-    setShowDropdown(false);
   };
 
   const handleInputFocus = () => {
@@ -153,42 +163,56 @@ export function SearchBar() {
                 </div>
                 <ScrollArea className="max-h-[350px]">
                   <div className="divide-y divide-border">
-                    {searchResults.map((result, index) => (
-                      <button
-                        key={result.messageId}
-                        onClick={() => handleResultClick(result)}
-                        className={cn(
-                          "w-full text-left px-3 py-2.5 hover:bg-muted/80 transition-colors",
-                          index === currentSearchIndex && "bg-muted",
-                        )}
-                      >
-                        <div className="flex items-start gap-2">
-                          <div className="flex-shrink-0 mt-0.5">
-                            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                          <div className="flex-1 min-w-0 space-y-1">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs font-medium text-primary truncate flex items-center gap-1">
-                                <User className="h-3 w-3" />
-                                {result.message.from}
-                              </span>
-                              <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                                {formatDate(result.message.date)}
-                              </span>
-                            </div>
-                            <p className="text-sm text-foreground line-clamp-2">
-                              {highlightText(
-                                result.message.content,
-                                searchQuery,
+                    {searchResults.map((result, index) => {
+                      const isLoading =
+                        clickedResultId === result.messageId &&
+                        isNavigatingToMessage;
+                      return (
+                        <button
+                          key={result.messageId}
+                          onClick={() => handleResultClick(result)}
+                          disabled={isNavigatingToMessage}
+                          className={cn(
+                            "w-full text-left px-3 py-2.5 hover:bg-muted/80 transition-colors",
+                            index === currentSearchIndex && "bg-muted",
+                            isLoading && "bg-accent",
+                            isNavigatingToMessage && !isLoading && "opacity-50",
+                          )}
+                        >
+                          <div className="flex items-start gap-2">
+                            <div className="shrink-0 mt-0.5">
+                              {isLoading ? (
+                                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                              ) : (
+                                <MessageSquare className="h-4 w-4 text-muted-foreground" />
                               )}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              in: {result.conversationTitle}
-                            </p>
+                            </div>
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-medium text-primary truncate flex items-center gap-1">
+                                  <User className="h-3 w-3" />
+                                  {result.message.from}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                  {isLoading
+                                    ? "Loading..."
+                                    : formatDate(result.message.date)}
+                                </span>
+                              </div>
+                              <p className="text-sm text-foreground line-clamp-2">
+                                {highlightText(
+                                  result.message.content,
+                                  searchQuery,
+                                )}
+                              </p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                in: {result.conversationTitle}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      </button>
-                    ))}
+                        </button>
+                      );
+                    })}
                   </div>
                 </ScrollArea>
               </>
