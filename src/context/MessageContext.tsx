@@ -26,6 +26,7 @@ interface MessageContextType {
   loadAllMessages: () => Promise<void>;
   hasMoreMessages: boolean;
   isLoadingMore: boolean;
+  loadingProgress: number;
   totalMessageCount: number;
 
   // Search
@@ -99,6 +100,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
   // Lazy loading state
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [totalMessageCount, setTotalMessageCount] = useState(0);
 
   // Search state
@@ -176,7 +178,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
       messages: ApiMessage[];
       hasMore: boolean;
       totalCount: number;
-    }>(`/conversations/${selectedConversationId}?limit=50`)
+    }>(`/conversations/${selectedConversationId}?limit=200`)
       .then((data) => {
         const messages: Message[] = data.messages.map((m) => ({
           id: m.id,
@@ -215,7 +217,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
         messages: ApiMessage[];
         hasMore: boolean;
       }>(
-        `/conversations/${selectedConversation.id}?limit=50&before=${oldestMessage.date.toISOString()}`,
+        `/conversations/${selectedConversation.id}?limit=200&before=${oldestMessage.date.toISOString()}`,
       );
 
       const olderMessages: Message[] = data.messages.map((m) => ({
@@ -249,11 +251,13 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
     if (!selectedConversation || isLoadingMore) return;
 
     setIsLoadingMore(true);
+    setLoadingProgress(0);
     try {
       // Load all messages - keep loading until we have everything
       let allMessages: Message[] = [];
       let hasMore = true;
       let beforeDate: string | null = null;
+      const total = totalMessageCount || 1;
 
       while (hasMore) {
         const url = beforeDate
@@ -282,6 +286,13 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
         allMessages = [...messages, ...allMessages];
         hasMore = data.hasMore;
 
+        // Update progress
+        const progress = Math.min(
+          Math.round((allMessages.length / total) * 100),
+          99,
+        );
+        setLoadingProgress(progress);
+
         if (hasMore && messages.length > 0) {
           // Get the oldest message date for next batch
           beforeDate = messages[0].date.toISOString();
@@ -296,12 +307,13 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
         };
       });
       setHasMoreMessages(false);
+      setLoadingProgress(100);
     } catch (e) {
       console.error("Failed to load all messages:", e);
     } finally {
       setIsLoadingMore(false);
     }
-  }, [selectedConversation, isLoadingMore]);
+  }, [selectedConversation, isLoadingMore, totalMessageCount]);
 
   const selectConversation = useCallback((id: string) => {
     setSelectedConversationId(id);
@@ -450,6 +462,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
         loadAllMessages,
         hasMoreMessages,
         isLoadingMore,
+        loadingProgress,
         totalMessageCount,
         searchQuery,
         setSearchQuery,

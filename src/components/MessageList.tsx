@@ -22,6 +22,7 @@ export function MessageList() {
     hasMoreMessages,
     isLoadingMore,
     isLoadingConversation,
+    loadingProgress,
     totalMessageCount,
   } = useMessages();
   const parentRef = useRef<HTMLDivElement>(null);
@@ -45,6 +46,19 @@ export function MessageList() {
     });
 
     return result;
+  }, [selectedConversation]);
+
+  // Map participants to indices for consistent coloring
+  const participantIndexMap = React.useMemo(() => {
+    if (!selectedConversation) return new Map<string, number>();
+    const otherParticipants = [
+      ...new Set(
+        selectedConversation.messages
+          .filter((m) => !m.isCurrentUser)
+          .map((m) => m.from),
+      ),
+    ];
+    return new Map(otherParticipants.map((p, i) => [p, i]));
   }, [selectedConversation]);
 
   const virtualizer = useVirtualizer({
@@ -223,6 +237,11 @@ export function MessageList() {
                 selectedConversation.messages[prevItem.messageIndex!].from !==
                   message.from);
 
+            // Get participant index for coloring
+            const participantIndex = message.isCurrentUser
+              ? -1
+              : (participantIndexMap.get(message.from) ?? 0);
+
             return (
               <div
                 key={virtualItem.key}
@@ -240,6 +259,7 @@ export function MessageList() {
                   message={message}
                   showAvatar={showAvatar}
                   isHighlighted={message.id === highlightedMessageId}
+                  participantIndex={participantIndex}
                 />
               </div>
             );
@@ -283,11 +303,23 @@ export function MessageList() {
       )}
 
       {isLoadingMore && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-background/80 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-lg">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span className="text-xs text-muted-foreground">
-            Loading older messages...
-          </span>
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 bg-background/80 backdrop-blur-sm px-4 py-2 rounded-lg shadow-lg min-w-[200px]">
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-xs text-muted-foreground">
+              {loadingProgress > 0
+                ? `Loading all messages... ${loadingProgress}%`
+                : "Loading older messages..."}
+            </span>
+          </div>
+          {loadingProgress > 0 && (
+            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all duration-300 ease-out"
+                style={{ width: `${loadingProgress}%` }}
+              />
+            </div>
+          )}
         </div>
       )}
 

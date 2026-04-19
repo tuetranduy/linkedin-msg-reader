@@ -48,12 +48,14 @@ interface MessageBubbleProps {
   message: Message;
   showAvatar?: boolean;
   isHighlighted?: boolean;
+  participantIndex?: number;
 }
 
 export function MessageBubble({
   message,
   showAvatar = true,
   isHighlighted = false,
+  participantIndex = 0,
 }: MessageBubbleProps) {
   const { isBookmarked, addBookmark, removeBookmark, searchQuery } =
     useMessages();
@@ -203,7 +205,9 @@ export function MessageBubble({
             "rounded-2xl px-4 py-2",
             message.isCurrentUser
               ? "bg-primary text-primary-foreground rounded-br-md"
-              : "bg-muted rounded-bl-md",
+              : participantIndex === 0
+                ? "bg-emerald-100 dark:bg-emerald-900/40 rounded-bl-md"
+                : "bg-orange-100 dark:bg-orange-900/40 rounded-bl-md",
           )}
         >
           {showAvatar && !message.isCurrentUser && (
