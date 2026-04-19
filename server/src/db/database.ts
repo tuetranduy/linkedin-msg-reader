@@ -33,9 +33,9 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS messages (
     id TEXT PRIMARY KEY,
     conversation_id TEXT NOT NULL,
-    sender TEXT,
+    from_name TEXT,
     sender_profile_url TEXT,
-    recipient TEXT,
+    to_name TEXT,
     date DATETIME,
     subject TEXT,
     content TEXT,
