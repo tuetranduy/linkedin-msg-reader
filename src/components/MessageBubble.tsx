@@ -206,12 +206,12 @@ export function MessageBubble({
             message.isCurrentUser
               ? "bg-primary text-primary-foreground rounded-br-md"
               : participantIndex === 0
-                ? "bg-slate-200 dark:bg-slate-700 rounded-bl-md"
-                : "bg-violet-100 dark:bg-violet-900/50 rounded-bl-md",
+                ? "bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-slate-100 rounded-bl-md"
+                : "bg-violet-100 text-violet-900 dark:bg-violet-800 dark:text-violet-100 rounded-bl-md",
           )}
         >
           {showAvatar && !message.isCurrentUser && (
-            <p className="mb-1 text-xs font-medium text-muted-foreground">
+            <p className="mb-1 text-xs font-medium opacity-70">
               {message.from}
             </p>
           )}
