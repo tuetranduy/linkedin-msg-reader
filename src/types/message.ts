@@ -30,9 +30,11 @@ export interface Message {
 export interface Conversation {
     id: string
     title: string
-    participants: string[]
+    participants: string[] | Participant[]
     messages: Message[]
-    lastMessageDate: Date
+    lastMessageDate?: Date
+    lastMessage?: Message | null
+    unreadCount?: number
 }
 
 export interface Participant {

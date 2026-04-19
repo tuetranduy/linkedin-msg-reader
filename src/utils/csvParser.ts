@@ -14,7 +14,7 @@ export function parseCSV(csvContent: string): Promise<RawMessage[]> {
                 }
                 resolve(results.data)
             },
-            error: (error) => {
+            error: (error: Error) => {
                 reject(error)
             }
         })
@@ -72,16 +72,18 @@ export function groupIntoConversations(messages: Message[]): Conversation[] {
         // Extract unique participants
         const participantMap = new Map<string, Participant>()
         msgs.forEach((msg) => {
-            if (!participantMap.has(msg.fromProfileUrl)) {
-                participantMap.set(msg.fromProfileUrl, {
+            const fromUrl = msg.fromProfileUrl || msg.from
+            const toUrl = msg.toProfileUrl || msg.to
+            if (!participantMap.has(fromUrl)) {
+                participantMap.set(fromUrl, {
                     name: msg.from,
-                    profileUrl: msg.fromProfileUrl
+                    profileUrl: msg.fromProfileUrl || ''
                 })
             }
-            if (!participantMap.has(msg.toProfileUrl)) {
-                participantMap.set(msg.toProfileUrl, {
+            if (!participantMap.has(toUrl)) {
+                participantMap.set(toUrl, {
                     name: msg.to,
-                    profileUrl: msg.toProfileUrl
+                    profileUrl: msg.toProfileUrl || ''
                 })
             }
         })
