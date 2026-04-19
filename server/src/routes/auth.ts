@@ -13,12 +13,7 @@ router.post('/login', (req: AuthRequest, res: Response): void => {
         return
     }
 
-    const user = db.prepare('SELECT id, username, password_hash, role FROM users WHERE username = ?').get(username) as {
-        id: number
-        username: string
-        password_hash: string
-        role: string
-    } | undefined
+    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as { id: number; username: string; password_hash: string; role: 'admin' | 'user' } | undefined
 
     if (!user || !bcrypt.compareSync(password, user.password_hash)) {
         res.status(401).json({ error: 'Invalid credentials' })
@@ -52,11 +47,7 @@ router.post('/register', authenticateToken, requireAdmin, (req: AuthRequest, res
 
     try {
         const passwordHash = bcrypt.hashSync(password, 12)
-        const result = db.prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)').run(
-            username,
-            passwordHash,
-            role || 'user'
-        )
+        const result = db.prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)').run(username, passwordHash, role || 'user')
         res.json({ user: { id: result.lastInsertRowid, username, role: role || 'user' } })
     } catch (err: unknown) {
         if ((err as { code?: string }).code === 'SQLITE_CONSTRAINT_UNIQUE') {

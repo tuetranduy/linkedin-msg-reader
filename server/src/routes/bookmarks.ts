@@ -8,8 +8,7 @@ router.use(authenticateToken)
 
 router.get('/', (req: AuthRequest, res: Response): void => {
     const bookmarks = db.prepare(`
-    SELECT b.id, b.message_id, b.conversation_id, b.content, b.sender, b.message_date, b.created_at,
-           c.title as conversation_title
+    SELECT b.*, c.title as conversation_title
     FROM bookmarks b
     LEFT JOIN conversations c ON b.conversation_id = c.id
     WHERE b.user_id = ?

@@ -25,3 +25,4 @@ dist-ssr
 *.db
 *.csv
 /.playwright-mcp
+*.env

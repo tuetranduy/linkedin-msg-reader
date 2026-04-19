@@ -27,11 +27,7 @@ router.post('/', (req: AuthRequest, res: Response): void => {
 
     try {
         const passwordHash = bcrypt.hashSync(password, 12)
-        const result = db.prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)').run(
-            username,
-            passwordHash,
-            role || 'user'
-        )
+        const result = db.prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)').run(username, passwordHash, role || 'user')
         res.json({ user: { id: result.lastInsertRowid, username, role: role || 'user' } })
     } catch (err: unknown) {
         if ((err as { code?: string }).code === 'SQLITE_CONSTRAINT_UNIQUE') {
@@ -46,21 +42,31 @@ router.put('/:id', (req: AuthRequest, res: Response): void => {
     const { id } = req.params
     const { username, password, role } = req.body
 
-    const user = db.prepare('SELECT id FROM users WHERE id = ?').get(id)
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id)
     if (!user) {
         res.status(404).json({ error: 'User not found' })
         return
     }
 
+    const updates: string[] = []
+    const values: unknown[] = []
+
     if (username) {
-        db.prepare('UPDATE users SET username = ? WHERE id = ?').run(username, id)
+        updates.push('username = ?')
+        values.push(username)
     }
     if (password) {
-        const passwordHash = bcrypt.hashSync(password, 12)
-        db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, id)
+        updates.push('password_hash = ?')
+        values.push(bcrypt.hashSync(password, 12))
     }
     if (role && ['admin', 'user'].includes(role)) {
-        db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, id)
+        updates.push('role = ?')
+        values.push(role)
+    }
+
+    if (updates.length > 0) {
+        values.push(id)
+        db.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).run(...values)
     }
 
     const updated = db.prepare('SELECT id, username, role FROM users WHERE id = ?').get(id)
@@ -71,12 +77,13 @@ router.delete('/:id', (req: AuthRequest, res: Response): void => {
     const { id } = req.params
 
     // Prevent deleting self
-    if (req.user?.id === parseInt(id)) {
+    if (req.user?.id === Number(id)) {
         res.status(400).json({ error: 'Cannot delete your own account' })
         return
     }
 
     const result = db.prepare('DELETE FROM users WHERE id = ?').run(id)
+
     if (result.changes === 0) {
         res.status(404).json({ error: 'User not found' })
         return

@@ -25,7 +25,7 @@ export function authenticateToken(req: AuthRequest, res: Response, next: NextFun
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET) as { userId: number }
-        const user = db.prepare('SELECT id, username, role FROM users WHERE id = ?').get(decoded.userId) as AuthUser | undefined
+        const user = db.prepare('SELECT id, username, role FROM users WHERE id = ?').get(decoded.userId) as { id: number; username: string; role: 'admin' | 'user' } | undefined
 
         if (!user) {
             res.status(401).json({ error: 'User not found' })

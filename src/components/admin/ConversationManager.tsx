@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { apiClient } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff, Users, Search } from "lucide-react";
+import { Eye, EyeOff, Users, Search, MessageSquare } from "lucide-react";
 
 interface Conversation {
   id: string;
@@ -81,8 +81,8 @@ export function ConversationManager() {
 
   if (conversations.length === 0) {
     return (
-      <div className="p-8 text-center text-muted-foreground">
-        <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+      <div className="p-6 lg:p-8 text-center text-muted-foreground">
+        <Users className="h-10 w-10 lg:h-12 lg:w-12 mx-auto mb-3 lg:mb-4 opacity-50" />
         <p>No conversations yet. Upload a CSV file first.</p>
       </div>
     );
@@ -92,10 +92,12 @@ export function ConversationManager() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold">Conversation Visibility</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="text-lg lg:text-xl font-semibold">
+            Conversation Visibility
+          </h2>
+          <p className="text-xs lg:text-sm text-muted-foreground">
             {visibleCount} of {conversations.length} visible to users
           </p>
         </div>
@@ -104,15 +106,19 @@ export function ConversationManager() {
             variant="outline"
             size="sm"
             onClick={() => setAllVisibility(true)}
+            className="flex-1 sm:flex-none"
           >
-            <Eye className="h-4 w-4 mr-1" /> Show All
+            <Eye className="h-4 w-4 sm:mr-1" />
+            <span className="hidden sm:inline">Show All</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setAllVisibility(false)}
+            className="flex-1 sm:flex-none"
           >
-            <EyeOff className="h-4 w-4 mr-1" /> Hide All
+            <EyeOff className="h-4 w-4 sm:mr-1" />
+            <span className="hidden sm:inline">Hide All</span>
           </Button>
         </div>
       </div>
@@ -127,7 +133,8 @@ export function ConversationManager() {
         />
       </div>
 
-      <div className="border rounded-lg overflow-hidden max-h-[500px] overflow-y-auto">
+      {/* Desktop: Table view */}
+      <div className="hidden md:block border rounded-lg overflow-hidden max-h-[500px] overflow-y-auto">
         <table className="w-full">
           <thead className="bg-muted sticky top-0">
             <tr>
@@ -171,6 +178,43 @@ export function ConversationManager() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile: Card view */}
+      <div className="md:hidden space-y-3 max-h-[60vh] overflow-y-auto">
+        {filteredConversations.map((conv) => (
+          <div key={conv.id} className="border rounded-lg p-3 bg-card">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="font-medium truncate">{conv.title}</div>
+                <div className="text-xs text-muted-foreground truncate mt-0.5">
+                  {conv.participants.join(", ")}
+                </div>
+                <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <MessageSquare className="h-3 w-3" />
+                    {conv.message_count}
+                  </span>
+                  <span>
+                    {new Date(conv.last_message_date).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+              <Button
+                variant={conv.isVisible ? "default" : "ghost"}
+                size="sm"
+                onClick={() => toggleVisibility(conv.id, conv.isVisible)}
+                className="flex-shrink-0"
+              >
+                {conv.isVisible ? (
+                  <Eye className="h-4 w-4" />
+                ) : (
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

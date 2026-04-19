@@ -38,56 +38,56 @@ router.post('/upload', authenticateToken, requireAdmin, upload.single('file'), (
         console.warn('CSV parsing warnings:', parsed.errors)
     }
 
-    // Clear existing data
-    db.prepare('DELETE FROM bookmarks').run()
-    db.prepare('DELETE FROM messages').run()
-    db.prepare('DELETE FROM conversations').run()
+    // Clear existing data in a transaction
+    const clearAndInsert = db.transaction(() => {
+        db.prepare('DELETE FROM bookmarks').run()
+        db.prepare('DELETE FROM messages').run()
+        db.prepare('DELETE FROM conversations').run()
 
-    // Group messages by conversation
-    const conversationsMap = new Map<string, {
-        title: string
-        participants: Set<string>
-        messages: RawMessage[]
-        lastDate: Date
-    }>()
+        // Group messages by conversation
+        const conversationsMap = new Map<string, {
+            title: string
+            participants: Set<string>
+            messages: RawMessage[]
+            lastDate: Date
+        }>()
 
-    for (const raw of parsed.data) {
-        const convId = raw['CONVERSATION ID']
-        if (!convId) continue
+        for (const raw of parsed.data) {
+            const convId = raw['CONVERSATION ID']
+            if (!convId) continue
 
-        if (!conversationsMap.has(convId)) {
-            conversationsMap.set(convId, {
-                title: raw['CONVERSATION TITLE'] || 'Untitled',
-                participants: new Set(),
-                messages: [],
-                lastDate: new Date(0)
-            })
+            if (!conversationsMap.has(convId)) {
+                conversationsMap.set(convId, {
+                    title: raw['CONVERSATION TITLE'] || 'Untitled',
+                    participants: new Set(),
+                    messages: [],
+                    lastDate: new Date(0)
+                })
+            }
+
+            const conv = conversationsMap.get(convId)!
+            conv.messages.push(raw)
+            conv.participants.add(raw['FROM'])
+            if (raw['TO']) conv.participants.add(raw['TO'])
+
+            const msgDate = new Date(raw['DATE'])
+            if (msgDate > conv.lastDate) {
+                conv.lastDate = msgDate
+            }
         }
 
-        const conv = conversationsMap.get(convId)!
-        conv.messages.push(raw)
-        conv.participants.add(raw['FROM'])
-        if (raw['TO']) conv.participants.add(raw['TO'])
+        const insertConv = db.prepare(`
+      INSERT INTO conversations (id, title, participants, message_count, last_message_date, is_visible)
+      VALUES (?, ?, ?, ?, ?, 0)
+    `)
 
-        const msgDate = new Date(raw['DATE'])
-        if (msgDate > conv.lastDate) {
-            conv.lastDate = msgDate
-        }
-    }
+        const insertMsg = db.prepare(`
+      INSERT INTO messages (id, conversation_id, from_name, sender_profile_url, to_name, date, subject, content, folder, attachments)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `)
 
-    // Insert conversations and messages
-    const insertConv = db.prepare(`
-    INSERT INTO conversations (id, title, participants, message_count, last_message_date, is_visible)
-    VALUES (?, ?, ?, ?, ?, 0)
-  `)
+        let globalMsgIndex = 0
 
-    const insertMsg = db.prepare(`
-    INSERT INTO messages (id, conversation_id, sender, sender_profile_url, recipient, date, subject, content, folder, attachments)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `)
-
-    let globalMsgIndex = 0
-    const transaction = db.transaction(() => {
         for (const [convId, conv] of conversationsMap) {
             insertConv.run(
                 convId,
@@ -97,8 +97,7 @@ router.post('/upload', authenticateToken, requireAdmin, upload.single('file'), (
                 conv.lastDate.toISOString()
             )
 
-            for (let i = 0; i < conv.messages.length; i++) {
-                const msg = conv.messages[i]
+            for (const msg of conv.messages) {
                 const msgId = `msg-${convId.slice(0, 8)}-${globalMsgIndex++}`
                 const attachments = msg['ATTACHMENTS']
                     ? msg['ATTACHMENTS'].split(',').map(a => a.trim()).filter(Boolean)
@@ -110,7 +109,7 @@ router.post('/upload', authenticateToken, requireAdmin, upload.single('file'), (
                     msg['FROM'],
                     msg['SENDER PROFILE URL'],
                     msg['TO'],
-                    new Date(msg['DATE']).toISOString(),
+                    msg['DATE'],
                     msg['SUBJECT'],
                     msg['CONTENT'],
                     msg['FOLDER'],
@@ -118,14 +117,12 @@ router.post('/upload', authenticateToken, requireAdmin, upload.single('file'), (
                 )
             }
         }
+
+        return { conversationCount: conversationsMap.size, messageCount: parsed.data.length }
     })
 
-    transaction()
-
-    res.json({
-        conversationCount: conversationsMap.size,
-        messageCount: parsed.data.length
-    })
+    const result = clearAndInsert()
+    res.json(result)
 })
 
 export default router

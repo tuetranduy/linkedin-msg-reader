@@ -1,8 +1,8 @@
 import express from 'express'
 import cors from 'cors'
 
-// Import db first to initialize
-import './db/database.js'
+// Import database (SQLite)
+import db from './db/database.js'
 
 import authRoutes from './routes/auth.js'
 import usersRoutes from './routes/users.js'
@@ -37,6 +37,18 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
     res.status(500).json({ error: 'Internal server error' })
 })
 
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`)
-})
+// Connect to MongoDB and start server
+function startServer() {
+    try {
+        // SQLite is synchronous, db is already initialized on import
+        console.log('Database initialized')
+        app.listen(PORT, () => {
+            console.log(`Server running on http://localhost:${PORT}`)
+        })
+    } catch (error) {
+        console.error('Failed to start server:', error)
+        process.exit(1)
+    }
+}
+
+startServer()

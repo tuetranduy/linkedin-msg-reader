@@ -6,29 +6,44 @@ const router = Router()
 
 router.use(authenticateToken)
 
+interface ConversationRow {
+    id: string
+    title: string
+    participants: string
+    message_count: number
+    last_message_date: string
+    is_visible: number
+}
+
+interface MessageRow {
+    id: string
+    conversation_id: string
+    from_name: string
+    sender_profile_url: string
+    to_name: string
+    date: string
+    subject: string
+    content: string
+    folder: string
+    attachments: string
+}
+
 router.get('/', (req: AuthRequest, res: Response): void => {
     const isAdmin = req.user?.role === 'admin'
 
-    let conversations
-    if (isAdmin) {
-        conversations = db.prepare(`
-      SELECT id, title, participants, message_count, last_message_date, is_visible
-      FROM conversations
-      ORDER BY last_message_date DESC
-    `).all()
-    } else {
-        conversations = db.prepare(`
-      SELECT id, title, participants, message_count, last_message_date, is_visible
-      FROM conversations
-      WHERE is_visible = 1
-      ORDER BY last_message_date DESC
-    `).all()
-    }
+    const query = isAdmin
+        ? 'SELECT * FROM conversations ORDER BY last_message_date DESC'
+        : 'SELECT * FROM conversations WHERE is_visible = 1 ORDER BY last_message_date DESC'
+
+    const conversations = db.prepare(query).all() as ConversationRow[]
 
     res.json({
-        conversations: conversations.map((c: Record<string, unknown>) => ({
-            ...c,
-            participants: JSON.parse(c.participants as string),
+        conversations: conversations.map((c) => ({
+            id: c.id,
+            title: c.title,
+            participants: JSON.parse(c.participants || '[]'),
+            message_count: c.message_count,
+            last_message_date: c.last_message_date,
             isVisible: Boolean(c.is_visible)
         }))
     })
@@ -38,7 +53,7 @@ router.get('/:id', (req: AuthRequest, res: Response): void => {
     const { id } = req.params
     const isAdmin = req.user?.role === 'admin'
 
-    const conversation = db.prepare('SELECT * FROM conversations WHERE id = ?').get(id) as Record<string, unknown> | undefined
+    const conversation = db.prepare('SELECT * FROM conversations WHERE id = ?').get(id) as ConversationRow | undefined
 
     if (!conversation) {
         res.status(404).json({ error: 'Conversation not found' })
@@ -50,26 +65,27 @@ router.get('/:id', (req: AuthRequest, res: Response): void => {
         return
     }
 
-    const messages = db.prepare(`
-    SELECT * FROM messages WHERE conversation_id = ? ORDER BY date ASC
-  `).all(id)
+    const messages = db.prepare('SELECT * FROM messages WHERE conversation_id = ? ORDER BY date ASC').all(id) as MessageRow[]
 
     res.json({
         conversation: {
-            ...conversation,
-            participants: JSON.parse(conversation.participants as string),
+            id: conversation.id,
+            title: conversation.title,
+            participants: JSON.parse(conversation.participants || '[]'),
+            message_count: conversation.message_count,
+            last_message_date: conversation.last_message_date,
             isVisible: Boolean(conversation.is_visible)
         },
-        messages: messages.map((m: Record<string, unknown>) => ({
+        messages: messages.map((m) => ({
             id: m.id,
             conversation_id: m.conversation_id,
-            from_name: m.sender,
-            to_name: m.recipient,
+            from_name: m.from_name,
+            to_name: m.to_name,
             date: m.date,
             content: m.content,
             folder: m.folder,
-            attachments: m.attachments ? JSON.parse(m.attachments as string) : [],
-            isCurrentUser: (m.sender_profile_url as string || '').toLowerCase().includes('tuetranduy')
+            attachments: m.attachments ? JSON.parse(m.attachments) : [],
+            isCurrentUser: (m.sender_profile_url || '').toLowerCase().includes('tuetranduy')
         }))
     })
 })

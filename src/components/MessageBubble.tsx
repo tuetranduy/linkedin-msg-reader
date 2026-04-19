@@ -67,13 +67,17 @@ export function MessageBubble({
     }
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase();
+  const getInitials = (name: string | undefined | null) => {
+    if (!name) return "?";
+    return (
+      name
+        .split(" ")
+        .map((n) => n[0])
+        .filter(Boolean)
+        .slice(0, 2)
+        .join("")
+        .toUpperCase() || "?"
+    );
   };
 
   // Parse URLs in content and safely render HTML

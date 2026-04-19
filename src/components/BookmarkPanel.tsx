@@ -2,7 +2,7 @@ import React from "react";
 import { useMessages } from "@/context/MessageContext";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bookmark, X, ExternalLink } from "lucide-react";
+import { Bookmark, X, ExternalLink, Trash2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -23,8 +23,8 @@ export function BookmarkPanel({ isOpen, onClose }: BookmarkPanelProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="flex h-full w-80 flex-col border-l border-border bg-card">
-      <div className="flex items-center justify-between border-b border-border p-4">
+    <div className="flex h-full w-full lg:w-80 flex-col border-l border-border bg-card">
+      <div className="flex items-center justify-between border-b border-border p-3 lg:p-4">
         <div className="flex items-center gap-2">
           <Bookmark className="h-5 w-5 text-primary" />
           <h3 className="font-semibold">Bookmarks</h3>
@@ -36,7 +36,15 @@ export function BookmarkPanel({ isOpen, onClose }: BookmarkPanelProps) {
           variant="ghost"
           size="icon"
           onClick={onClose}
-          className="h-8 w-8"
+          className="h-8 w-8 lg:hidden"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="h-8 w-8 hidden lg:flex"
         >
           <X className="h-4 w-4" />
         </Button>
@@ -44,8 +52,8 @@ export function BookmarkPanel({ isOpen, onClose }: BookmarkPanelProps) {
 
       <ScrollArea className="flex-1">
         {bookmarks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-8 text-center">
-            <Bookmark className="mb-3 h-12 w-12 text-muted-foreground/30" />
+          <div className="flex flex-col items-center justify-center p-6 lg:p-8 text-center">
+            <Bookmark className="mb-3 h-10 w-10 lg:h-12 lg:w-12 text-muted-foreground/30" />
             <p className="text-sm text-muted-foreground">No bookmarks yet</p>
             <p className="mt-1 text-xs text-muted-foreground">
               Click the bookmark icon on any message to save it here
@@ -57,25 +65,30 @@ export function BookmarkPanel({ isOpen, onClose }: BookmarkPanelProps) {
               <div
                 key={bookmark.messageId}
                 className={cn(
-                  "group relative mb-2 rounded-lg border border-border p-3 transition-colors hover:bg-accent",
+                  "group relative mb-2 rounded-lg border border-border p-2.5 lg:p-3 transition-colors hover:bg-accent active:bg-accent/80",
                 )}
               >
                 <button
-                  onClick={() => goToBookmark(bookmark)}
+                  onClick={() => {
+                    goToBookmark(bookmark);
+                    onClose();
+                  }}
                   className="w-full text-left"
                 >
-                  <div className="mb-1 flex items-center justify-between">
-                    <span className="text-sm font-medium">{bookmark.from}</span>
-                    <span className="text-xs text-muted-foreground">
+                  <div className="mb-1 flex items-center justify-between pr-6">
+                    <span className="text-xs lg:text-sm font-medium">
+                      {bookmark.from}
+                    </span>
+                    <span className="text-[10px] lg:text-xs text-muted-foreground">
                       {formatDate(bookmark.date)}
                     </span>
                   </div>
 
-                  <p className="line-clamp-2 text-sm text-muted-foreground">
+                  <p className="line-clamp-2 text-xs lg:text-sm text-muted-foreground">
                     {bookmark.content}
                   </p>
 
-                  <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                  <div className="mt-1.5 lg:mt-2 flex items-center gap-1 text-[10px] lg:text-xs text-muted-foreground">
                     <ExternalLink className="h-3 w-3" />
                     <span className="truncate">
                       {getConversationTitle(bookmark.conversationId)}
@@ -86,13 +99,13 @@ export function BookmarkPanel({ isOpen, onClose }: BookmarkPanelProps) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-1 top-1 h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+                  className="absolute right-1 top-1 h-6 w-6 opacity-100 lg:opacity-0 transition-opacity lg:group-hover:opacity-100"
                   onClick={(e) => {
                     e.stopPropagation();
                     removeBookmark(bookmark.messageId);
                   }}
                 >
-                  <X className="h-3 w-3" />
+                  <Trash2 className="h-3 w-3 text-destructive" />
                 </Button>
               </div>
             ))}
