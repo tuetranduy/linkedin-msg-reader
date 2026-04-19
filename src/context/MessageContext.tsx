@@ -406,14 +406,19 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
     setHighlightedMessageId(result.messageId);
   }, [searchResults, currentSearchIndex]);
 
-  const goToSearchResult = useCallback((result: SearchResult) => {
-    const resultIndex = searchResults.findIndex(r => r.messageId === result.messageId);
-    if (resultIndex !== -1) {
-      setCurrentSearchIndex(resultIndex);
-    }
-    setSelectedConversationId(result.conversationId);
-    setHighlightedMessageId(result.messageId);
-  }, [searchResults]);
+  const goToSearchResult = useCallback(
+    (result: SearchResult) => {
+      const resultIndex = searchResults.findIndex(
+        (r) => r.messageId === result.messageId,
+      );
+      if (resultIndex !== -1) {
+        setCurrentSearchIndex(resultIndex);
+      }
+      setSelectedConversationId(result.conversationId);
+      setHighlightedMessageId(result.messageId);
+    },
+    [searchResults],
+  );
 
   // Bookmark functionality - server-persisted
   const addBookmark = useCallback(async (message: Message) => {

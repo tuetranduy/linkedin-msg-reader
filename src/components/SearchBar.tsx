@@ -3,7 +3,15 @@ import { useMessages } from "@/context/MessageContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, ChevronUp, ChevronDown, X, Loader2, MessageSquare, User } from "lucide-react";
+import {
+  Search,
+  ChevronUp,
+  ChevronDown,
+  X,
+  Loader2,
+  MessageSquare,
+  User,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function formatDate(date: Date): string {
@@ -18,16 +26,23 @@ function formatDate(date: Date): string {
   } else if (days < 7) {
     return date.toLocaleDateString([], { weekday: "short" });
   } else {
-    return date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+    return date.toLocaleDateString([], {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
   }
 }
 
 function highlightText(text: string, query: string): React.ReactNode {
   if (!query.trim()) return text;
-  
-  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
+
+  const regex = new RegExp(
+    `(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
+    "gi",
+  );
   const parts = text.split(regex);
-  
+
   return parts.map((part, i) =>
     regex.test(part) ? (
       <mark key={i} className="bg-yellow-200 dark:bg-yellow-800 rounded px-0.5">
@@ -35,7 +50,7 @@ function highlightText(text: string, query: string): React.ReactNode {
       </mark>
     ) : (
       part
-    )
+    ),
   );
 }
 
@@ -61,7 +76,10 @@ export function SearchBar() {
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setShowDropdown(false);
       }
     }
@@ -77,7 +95,7 @@ export function SearchBar() {
     }
   }, [hasResults, hasQuery]);
 
-  const handleResultClick = (result: typeof searchResults[0]) => {
+  const handleResultClick = (result: (typeof searchResults)[0]) => {
     goToSearchResult(result);
     setShowDropdown(false);
   };
@@ -89,7 +107,10 @@ export function SearchBar() {
   };
 
   return (
-    <div ref={containerRef} className="flex items-center gap-1.5 lg:gap-2 relative">
+    <div
+      ref={containerRef}
+      className="flex items-center gap-1.5 lg:gap-2 relative"
+    >
       <div className="relative flex-1 min-w-0">
         <Search className="absolute left-2.5 lg:left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -126,7 +147,8 @@ export function SearchBar() {
               <>
                 <div className="px-3 py-2 border-b border-border bg-muted/50">
                   <span className="text-xs text-muted-foreground font-medium">
-                    {searchResults.length} result{searchResults.length !== 1 ? "s" : ""} found
+                    {searchResults.length} result
+                    {searchResults.length !== 1 ? "s" : ""} found
                   </span>
                 </div>
                 <ScrollArea className="max-h-[350px]">
@@ -137,7 +159,7 @@ export function SearchBar() {
                         onClick={() => handleResultClick(result)}
                         className={cn(
                           "w-full text-left px-3 py-2.5 hover:bg-muted/80 transition-colors",
-                          index === currentSearchIndex && "bg-muted"
+                          index === currentSearchIndex && "bg-muted",
                         )}
                       >
                         <div className="flex items-start gap-2">
@@ -155,7 +177,10 @@ export function SearchBar() {
                               </span>
                             </div>
                             <p className="text-sm text-foreground line-clamp-2">
-                              {highlightText(result.message.content, searchQuery)}
+                              {highlightText(
+                                result.message.content,
+                                searchQuery,
+                              )}
                             </p>
                             <p className="text-xs text-muted-foreground truncate">
                               in: {result.conversationTitle}
