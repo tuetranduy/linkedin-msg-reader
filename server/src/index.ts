@@ -1,15 +1,15 @@
 import express from 'express'
 import cors from 'cors'
 
-// Import database (SQLite)
-import db from './db/database.js'
+// Import MongoDB connection
+import { connectDB } from './db/mongodb.js'
 
-import authRoutes from './routes/auth.js'
-import usersRoutes from './routes/users.js'
-import conversationsRoutes from './routes/conversations.js'
-import messagesRoutes from './routes/messages.js'
-import bookmarksRoutes from './routes/bookmarks.js'
-import searchRoutes from './routes/search.js'
+import authRoutes from './routes/auth.mongo.js'
+import usersRoutes from './routes/users.mongo.js'
+import conversationsRoutes from './routes/conversations.mongo.js'
+import messagesRoutes from './routes/messages.mongo.js'
+import bookmarksRoutes from './routes/bookmarks.mongo.js'
+import searchRoutes from './routes/search.mongo.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -38,9 +38,9 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 })
 
 // Connect to MongoDB and start server
-function startServer() {
+async function startServer() {
     try {
-        // SQLite is synchronous, db is already initialized on import
+        await connectDB()
         console.log('Database initialized')
         app.listen(PORT, () => {
             console.log(`Server running on http://localhost:${PORT}`)

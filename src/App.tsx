@@ -138,11 +138,6 @@ function AppContent() {
             <h2 className="text-xl font-semibold mb-2">
               No conversations available
             </h2>
-            <p className="text-muted-foreground">
-              {isAdmin
-                ? "Go to Admin Dashboard to upload messages."
-                : "Contact an administrator to make conversations visible."}
-            </p>
             {isAdmin && (
               <Button className="mt-4" onClick={() => setShowAdmin(true)}>
                 <Settings className="h-4 w-4 mr-2" /> Open Admin Dashboard
