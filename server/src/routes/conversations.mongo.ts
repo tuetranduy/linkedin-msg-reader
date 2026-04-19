@@ -12,7 +12,7 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
 
     const filter = isAdmin ? {} : { is_visible: true }
     const conversations = await db.collection('conversations')
-        .find(filter)
+        .find(filter, { projection: { _id: 1, title: 1, participants: 1, message_count: 1, last_message_date: 1, is_visible: 1 } })
         .sort({ last_message_date: -1 })
         .toArray()
 
@@ -46,7 +46,10 @@ router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
     }
 
     const messages = await db.collection('messages')
-        .find({ conversation_id: id })
+        .find(
+            { conversation_id: id },
+            { projection: { _id: 1, conversation_id: 1, from_name: 1, to_name: 1, date: 1, content: 1, folder: 1, attachments: 1, sender_profile_url: 1 } }
+        )
         .sort({ date: 1 })
         .toArray()
 
