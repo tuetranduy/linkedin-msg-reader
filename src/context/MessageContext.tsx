@@ -14,6 +14,7 @@ interface MessageContextType {
   conversations: Conversation[];
   selectedConversation: Conversation | null;
   isLoading: boolean;
+  isLoadingConversation: boolean;
   error: string | null;
 
   // Actions
@@ -92,6 +93,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
   const [selectedConversation, setSelectedConversation] =
     useState<Conversation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Lazy loading state
@@ -168,7 +170,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    setIsLoading(true);
+    setIsLoadingConversation(true);
     apiClient<{
       conversation: ApiConversation;
       messages: ApiMessage[];
@@ -197,7 +199,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
         setTotalMessageCount(data.totalCount);
       })
       .catch(console.error)
-      .finally(() => setIsLoading(false));
+      .finally(() => setIsLoadingConversation(false));
   }, [selectedConversationId]);
 
   // Load more messages (older messages)
@@ -419,6 +421,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
         conversations,
         selectedConversation,
         isLoading,
+        isLoadingConversation,
         error,
         selectConversation,
         refreshConversations,

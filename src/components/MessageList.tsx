@@ -21,6 +21,7 @@ export function MessageList() {
     loadAllMessages,
     hasMoreMessages,
     isLoadingMore,
+    isLoadingConversation,
     totalMessageCount,
   } = useMessages();
   const parentRef = useRef<HTMLDivElement>(null);
@@ -159,6 +160,14 @@ export function MessageList() {
       }, 100);
     }
   }, [selectedConversation?.id]);
+
+  if (isLoadingConversation) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!selectedConversation) {
     return (
