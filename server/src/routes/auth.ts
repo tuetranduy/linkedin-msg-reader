@@ -62,4 +62,35 @@ router.get('/me', authenticateToken, (req: AuthRequest, res: Response): void => 
     res.json(req.user)
 })
 
+router.put('/password', authenticateToken, (req: AuthRequest, res: Response): void => {
+    const { currentPassword, newPassword } = req.body
+
+    if (!currentPassword || !newPassword) {
+        res.status(400).json({ error: 'Current password and new password required' })
+        return
+    }
+
+    if (newPassword.length < 6) {
+        res.status(400).json({ error: 'New password must be at least 6 characters' })
+        return
+    }
+
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user?.id) as { id: number; password_hash: string } | undefined
+
+    if (!user) {
+        res.status(404).json({ error: 'User not found' })
+        return
+    }
+
+    if (!bcrypt.compareSync(currentPassword, user.password_hash)) {
+        res.status(401).json({ error: 'Current password is incorrect' })
+        return
+    }
+
+    const newPasswordHash = bcrypt.hashSync(newPassword, 12)
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(newPasswordHash, user.id)
+
+    res.json({ success: true })
+})
+
 export default router

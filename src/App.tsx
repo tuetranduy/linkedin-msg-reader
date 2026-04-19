@@ -6,6 +6,7 @@ import { MessageList } from "./components/MessageList";
 import { SearchBar } from "./components/SearchBar";
 import { BookmarkPanel } from "./components/BookmarkPanel";
 import { LoginForm } from "./components/auth/LoginForm";
+import { ChangePasswordModal } from "./components/auth/ChangePasswordModal";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { Button } from "./components/ui/button";
 import { TooltipProvider } from "./components/ui/tooltip";
@@ -22,6 +23,7 @@ import {
   Menu,
   ArrowLeft,
   Search,
+  KeyRound,
 } from "lucide-react";
 
 function AppContent() {
@@ -37,6 +39,7 @@ function AppContent() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const isMobile = useIsMobile();
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
@@ -102,6 +105,14 @@ function AppContent() {
             <Button
               variant="ghost"
               size="icon"
+              onClick={() => setShowChangePassword(true)}
+              title="Change Password"
+            >
+              <KeyRound className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setDarkMode(!darkMode)}
             >
               {darkMode ? (
@@ -115,6 +126,12 @@ function AppContent() {
             </Button>
           </div>
         </header>
+
+        {/* Change Password Modal */}
+        <ChangePasswordModal
+          isOpen={showChangePassword}
+          onClose={() => setShowChangePassword(false)}
+        />
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center">
             <MessageSquare className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
@@ -209,6 +226,14 @@ function AppContent() {
           <Button
             variant="ghost"
             size="icon"
+            onClick={() => setShowChangePassword(true)}
+            title="Change Password"
+          >
+            <KeyRound className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setDarkMode(!darkMode)}
           >
             {darkMode ? (
@@ -235,6 +260,12 @@ function AppContent() {
           </Button>
         </div>
       </header>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
+      />
 
       {/* Mobile search bar (expandable) */}
       {isMobile && showMobileSearch && (

@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { apiClient } from "@/api/client";
+import { apiClient, adminResetPassword } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, Edit2, X, Check, User } from "lucide-react";
+import { Plus, Trash2, Edit2, X, Check, User, KeyRound } from "lucide-react";
 
 interface User {
   id: number;
@@ -16,6 +16,8 @@ export function UserManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [resetPasswordId, setResetPasswordId] = useState<number | null>(null);
+  const [resetPassword, setResetPassword] = useState("");
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -75,6 +77,21 @@ export function UserManagement() {
       loadUsers();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to update user");
+    }
+  };
+
+  const handleResetPassword = async (id: number) => {
+    if (resetPassword.length < 6) {
+      alert("Password must be at least 6 characters");
+      return;
+    }
+    try {
+      await adminResetPassword(id, resetPassword);
+      setResetPasswordId(null);
+      setResetPassword("");
+      alert("Password reset successfully");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to reset password");
     }
   };
 
@@ -215,8 +232,46 @@ export function UserManagement() {
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
+                  ) : resetPasswordId === user.id ? (
+                    <div className="flex justify-end items-center gap-2">
+                      <Input
+                        type="password"
+                        placeholder="New password"
+                        value={resetPassword}
+                        onChange={(e) => setResetPassword(e.target.value)}
+                        className="h-8 w-32"
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleResetPassword(user.id)}
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setResetPasswordId(null);
+                          setResetPassword("");
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   ) : (
                     <div className="flex justify-end gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setResetPasswordId(user.id);
+                          setResetPassword("");
+                        }}
+                        title="Reset Password"
+                      >
+                        <KeyRound className="h-4 w-4" />
+                      </Button>
                       <Button
                         size="sm"
                         variant="ghost"
@@ -312,29 +367,71 @@ export function UserManagement() {
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-1">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setEditingId(user.id);
-                      setFormData({
-                        username: user.username,
-                        password: "",
-                        role: user.role,
-                      });
-                    }}
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleDelete(user.id)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
+                {resetPasswordId === user.id ? (
+                  <div className="flex flex-col gap-2 mt-2">
+                    <Input
+                      type="password"
+                      placeholder="New password (min 6 chars)"
+                      value={resetPassword}
+                      onChange={(e) => setResetPassword(e.target.value)}
+                      className="h-9"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handleResetPassword(user.id)}
+                        className="flex-1"
+                      >
+                        <Check className="h-4 w-4 mr-1" /> Reset
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setResetPasswordId(null);
+                          setResetPassword("");
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setResetPasswordId(user.id);
+                        setResetPassword("");
+                      }}
+                      title="Reset Password"
+                    >
+                      <KeyRound className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setEditingId(user.id);
+                        setFormData({
+                          username: user.username,
+                          password: "",
+                          role: user.role,
+                        });
+                      }}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleDelete(user.id)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </div>

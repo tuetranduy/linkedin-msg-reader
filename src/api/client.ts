@@ -57,3 +57,17 @@ export async function uploadFile(file: File): Promise<{ conversationCount: numbe
 
     return response.json()
 }
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean }> {
+    return apiClient<{ success: boolean }>('/auth/password', {
+        method: 'PUT',
+        body: JSON.stringify({ currentPassword, newPassword }),
+    })
+}
+
+export async function adminResetPassword(userId: number, password: string): Promise<{ user: { id: number; username: string; role: string } }> {
+    return apiClient<{ user: { id: number; username: string; role: string } }>(`/users/${userId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ password }),
+    })
+}
