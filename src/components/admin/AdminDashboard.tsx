@@ -153,8 +153,8 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                 <div
                   className={`p-3 lg:p-4 rounded-lg flex items-center gap-2 lg:gap-3 text-sm ${
                     uploadStatus.success
-                      ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
-                      : "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400"
+                      ? "bg-green-50 text-green-700"
+                      : "bg-red-50 text-red-700"
                   }`}
                 >
                   {uploadStatus.success && (

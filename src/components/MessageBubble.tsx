@@ -102,7 +102,7 @@ export function MessageBubble({
 
       return (
         <div
-          className="prose prose-sm dark:prose-invert max-w-none [&_a]:text-primary [&_a]:underline"
+          className="prose prose-sm max-w-none [&_a]:text-primary [&_a]:underline"
           dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
         />
       );

@@ -82,10 +82,6 @@ export function LoginForm() {
             )}
           </Button>
         </form>
-
-        <p className="text-center text-xs text-muted-foreground">
-          Default admin: admin / admin123
-        </p>
       </div>
     </div>
   );
