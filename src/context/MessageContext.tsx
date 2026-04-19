@@ -250,22 +250,43 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
 
     setIsLoadingMore(true);
     try {
-      // Load all messages at once with a high limit
-      const data = await apiClient<{
-        messages: ApiMessage[];
-        hasMore: boolean;
-      }>(`/conversations/${selectedConversation.id}?limit=10000`);
+      // Load all messages - keep loading until we have everything
+      let allMessages: Message[] = [];
+      let hasMore = true;
+      let beforeDate: string | null = null;
 
-      const allMessages: Message[] = data.messages.map((m) => ({
-        id: m.id,
-        conversationId: m.conversation_id,
-        from: m.from_name,
-        to: m.to_name,
-        date: new Date(m.date),
-        content: m.content,
-        folder: m.folder,
-        attachments: [],
-      }));
+      while (hasMore) {
+        const url = beforeDate
+          ? `/conversations/${selectedConversation.id}?limit=1000&before=${beforeDate}`
+          : `/conversations/${selectedConversation.id}?limit=1000`;
+
+        const data = await apiClient<{
+          messages: ApiMessage[];
+          hasMore: boolean;
+        }>(url);
+
+        const messages: Message[] = data.messages.map((m) => ({
+          id: m.id,
+          conversationId: m.conversation_id,
+          from: m.from_name,
+          to: m.to_name,
+          date: new Date(m.date),
+          content: m.content,
+          folder: m.folder,
+          attachments: [],
+        }));
+
+        if (messages.length === 0) break;
+
+        // Prepend older messages
+        allMessages = [...messages, ...allMessages];
+        hasMore = data.hasMore;
+
+        if (hasMore && messages.length > 0) {
+          // Get the oldest message date for next batch
+          beforeDate = messages[0].date.toISOString();
+        }
+      }
 
       setSelectedConversation((prev) => {
         if (!prev) return prev;
