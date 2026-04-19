@@ -252,9 +252,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
       const data = await apiClient<{
         messages: ApiMessage[];
         hasMore: boolean;
-      }>(
-        `/conversations/${selectedConversation.id}?limit=10000`,
-      );
+      }>(`/conversations/${selectedConversation.id}?limit=10000`);
 
       const allMessages: Message[] = data.messages.map((m) => ({
         id: m.id,
