@@ -184,7 +184,9 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Search functionality - uses API for cross-conversation search
-  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
 
   useEffect(() => {
     if (searchTimeoutRef.current) {
