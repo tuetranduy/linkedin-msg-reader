@@ -80,10 +80,16 @@ router.post('/upload', authenticateToken, requireAdmin, upload.single('file'), a
     // Insert conversations
     const conversationDocs: Array<{ _id: unknown; title: string; participants: string[]; message_count: number; last_message_date: Date; is_visible: boolean }> = []
     for (const [convId, conv] of conversationsMap) {
+        const participants = Array.from(conv.participants).filter(Boolean)
+        // Use participant names if title is empty/Untitled
+        const title = (conv.title && conv.title !== 'Untitled')
+            ? conv.title
+            : participants.slice(0, 2).join(' & ') || 'Untitled'
+        
         conversationDocs.push({
             _id: convId as unknown,
-            title: conv.title,
-            participants: Array.from(conv.participants),
+            title,
+            participants,
             message_count: conv.messages.length,
             last_message_date: conv.lastDate,
             is_visible: false

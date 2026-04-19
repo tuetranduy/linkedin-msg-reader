@@ -100,7 +100,8 @@ export function ConversationList({
                   )}
 
                   <p className="mt-0.5 lg:mt-1 text-[10px] lg:text-xs text-muted-foreground">
-                    {conversation.messages.length} messages
+                    {conversation.messageCount ?? conversation.messages.length}{" "}
+                    messages
                   </p>
                 </div>
               </button>

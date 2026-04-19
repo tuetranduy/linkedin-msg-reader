@@ -32,6 +32,7 @@ export interface Conversation {
     title: string
     participants: string[] | Participant[]
     messages: Message[]
+    messageCount?: number
     lastMessageDate?: Date
     lastMessage?: Message | null
     unreadCount?: number

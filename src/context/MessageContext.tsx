@@ -111,6 +111,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
         title: c.title,
         participants: c.participants,
         messages: [],
+        messageCount: c.message_count,
         lastMessageDate: new Date(c.last_message_date),
       }));
       setConversations(convos);
