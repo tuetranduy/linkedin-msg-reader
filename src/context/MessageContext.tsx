@@ -48,6 +48,7 @@ interface MessageContextType {
   removeBookmark: (messageId: string) => void;
   isBookmarked: (messageId: string) => boolean;
   goToBookmark: (bookmark: Bookmark) => void;
+  refreshBookmarks: () => Promise<void>;
 }
 
 interface SearchResult {
@@ -156,22 +157,27 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Load bookmarks on mount
-  useEffect(() => {
-    apiClient<{ bookmarks: ApiBookmark[] }>("/bookmarks")
-      .then((data) => {
-        setBookmarks(
-          data.bookmarks.map((b) => ({
-            messageId: b.message_id,
-            conversationId: b.conversation_id,
-            content: b.content,
-            from: b.from_name,
-            date: new Date(b.message_date),
-            createdAt: new Date(b.created_at),
-          })),
-        );
-      })
-      .catch(console.error);
+  const refreshBookmarks = useCallback(async () => {
+    try {
+      const data = await apiClient<{ bookmarks: ApiBookmark[] }>("/bookmarks");
+      setBookmarks(
+        data.bookmarks.map((b) => ({
+          messageId: b.message_id,
+          conversationId: b.conversation_id,
+          content: b.content,
+          from: b.from_name,
+          date: new Date(b.message_date),
+          createdAt: new Date(b.created_at),
+        })),
+      );
+    } catch (e) {
+      console.error("Failed to load bookmarks:", e);
+    }
   }, []);
+
+  useEffect(() => {
+    refreshBookmarks();
+  }, [refreshBookmarks]);
 
   // Load full conversation when selected
   useEffect(() => {
@@ -618,6 +624,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
         removeBookmark,
         isBookmarked,
         goToBookmark,
+        refreshBookmarks,
       }}
     >
       {children}

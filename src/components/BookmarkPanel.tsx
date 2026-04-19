@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useMessages } from "@/context/MessageContext";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,8 +12,20 @@ interface BookmarkPanelProps {
 }
 
 export function BookmarkPanel({ isOpen, onClose }: BookmarkPanelProps) {
-  const { bookmarks, removeBookmark, goToBookmark, conversations } =
-    useMessages();
+  const {
+    bookmarks,
+    removeBookmark,
+    goToBookmark,
+    conversations,
+    refreshBookmarks,
+  } = useMessages();
+
+  // Refresh bookmarks when panel opens
+  useEffect(() => {
+    if (isOpen) {
+      refreshBookmarks();
+    }
+  }, [isOpen, refreshBookmarks]);
 
   const getConversationTitle = (conversationId: string) => {
     const conversation = conversations.find((c) => c.id === conversationId);
