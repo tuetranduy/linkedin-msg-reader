@@ -36,9 +36,9 @@ export async function connectDB(): Promise<Db> {
         const passwordHash = bcrypt.hashSync('admin123', 12)
         await db.collection('users').insertOne({
             username: 'admin',
-            password_hash: passwordHash,
+            passwordHash: passwordHash,
             role: 'admin',
-            created_at: new Date()
+            createdAt: new Date()
         })
         console.log('Created default admin user: admin/admin123')
     }

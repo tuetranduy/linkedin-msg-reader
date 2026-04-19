@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import { createServer } from 'http'
@@ -22,9 +23,13 @@ const app = express()
 const httpServer = createServer(app)
 const io = new Server(httpServer, {
     cors: {
-        origin: process.env.NODE_ENV === 'production'
-            ? ['https://linkedin.tuetran.dev']
-            : ['http://localhost:5173', 'http://localhost:3000'],
+        origin: [
+            'http://localhost:5173',
+            'http://localhost:5174',
+            'http://localhost:5175',
+            'http://localhost:5176',
+            'https://linkedin.tuetran.dev'
+        ],
         methods: ['GET', 'POST'],
         credentials: true
     }
@@ -44,10 +49,6 @@ app.use('/api/bookmarks', bookmarksRoutes)
 app.use('/api/search', searchRoutes)
 app.use('/api/rooms', roomsRoutes)
 
-// Socket.io authentication and handlers
-io.use(authenticateSocket)
-setupSocketHandlers(io)
-
 // Health check
 app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok' })
@@ -59,7 +60,16 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
     res.status(500).json({ error: 'Internal server error' })
 })
 
-// Connect to MongoDB and start server
+// Socket.io authentication middleware
+io.use(authenticateSocket)
+
+// Socket.io connection handling
+io.on('connection', (socket) => {
+    console.log(`User connected: ${socket.data.user.username}`)
+    setupSocketHandlers(io, socket)
+})
+
+// Start server
 async function startServer() {
     try {
         await connectDB()
