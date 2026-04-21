@@ -63,11 +63,8 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 // Socket.io authentication middleware
 io.use(authenticateSocket)
 
-// Socket.io connection handling
-io.on('connection', (socket) => {
-    console.log(`User connected: ${socket.data.user.username}`)
-    setupSocketHandlers(io, socket)
-})
+// Setup socket handlers
+setupSocketHandlers(io)
 
 // Start server
 async function startServer() {
