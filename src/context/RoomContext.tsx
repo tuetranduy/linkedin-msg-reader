@@ -41,6 +41,33 @@ interface RoomContextType {
 }
 
 const RoomContext = createContext<RoomContextType | null>(null);
+const SOCKET_ACK_TIMEOUT_MS = 10000;
+
+async function emitWithAck<TResponse>(
+  socket: Socket,
+  event: string,
+  payload: unknown,
+): Promise<TResponse> {
+  return new Promise((resolve, reject) => {
+    socket.timeout(SOCKET_ACK_TIMEOUT_MS).emit(
+      event,
+      payload,
+      (err: Error | null, response?: TResponse) => {
+        if (err) {
+          reject(new Error("Server timeout. Please try again."));
+          return;
+        }
+
+        if (typeof response === "undefined") {
+          reject(new Error("No response from server"));
+          return;
+        }
+
+        resolve(response);
+      },
+    );
+  });
+}
 
 export function RoomProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -190,126 +217,111 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
 
   const createRoom = useCallback(
     async (conversationId: string): Promise<Room> => {
-      return new Promise((resolve, reject) => {
-        if (!socket || !isConnected) {
-          reject(new Error("Not connected"));
-          return;
-        }
+      if (!socket || !isConnected) {
+        throw new Error("Not connected");
+      }
 
-        socket.emit(
-          "room:create",
-          { conversationId },
-          (response: { success?: boolean; error?: string; room?: Room }) => {
-            if (response.error) {
-              reject(new Error(response.error));
-            } else if (response.room) {
-              setCurrentRoom(response.room);
-              resolve(response.room);
-            } else {
-              reject(new Error("Unknown error"));
-            }
-          },
-        );
-      });
+      const response = await emitWithAck<{
+        success?: boolean;
+        error?: string;
+        room?: Room;
+      }>(socket, "room:create", { conversationId });
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      if (!response.room) {
+        throw new Error("Unknown error");
+      }
+
+      setCurrentRoom(response.room);
+      return response.room;
     },
     [socket, isConnected],
   );
 
   const joinRoom = useCallback(
     async (code: string): Promise<Room> => {
-      return new Promise((resolve, reject) => {
-        if (!socket || !isConnected) {
-          reject(new Error("Not connected"));
-          return;
-        }
+      if (!socket || !isConnected) {
+        throw new Error("Not connected");
+      }
 
-        socket.emit(
-          "room:join",
-          { code },
-          (response: { success?: boolean; error?: string; room?: Room }) => {
-            if (response.error) {
-              reject(new Error(response.error));
-            } else if (response.room) {
-              setCurrentRoom(response.room);
-              resolve(response.room);
-            } else {
-              reject(new Error("Unknown error"));
-            }
-          },
-        );
-      });
+      const response = await emitWithAck<{
+        success?: boolean;
+        error?: string;
+        room?: Room;
+      }>(socket, "room:join", { code });
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      if (!response.room) {
+        throw new Error("Unknown error");
+      }
+
+      setCurrentRoom(response.room);
+      return response.room;
     },
     [socket, isConnected],
   );
 
   const leaveRoom = useCallback(async (): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      if (!socket || !currentRoom) {
-        resolve();
-        return;
-      }
+    if (!socket || !currentRoom) {
+      return;
+    }
 
-      socket.emit(
-        "room:leave",
-        { code: currentRoom.code },
-        (response: { success?: boolean; error?: string }) => {
-          if (response?.error) {
-            reject(new Error(response.error));
-          } else {
-            setCurrentRoom(null);
-            resolve();
-          }
-        },
-      );
-    });
+    const response = await emitWithAck<{ success?: boolean; error?: string }>(
+      socket,
+      "room:leave",
+      { code: currentRoom.code },
+    );
+
+    if (response?.error) {
+      throw new Error(response.error);
+    }
+
+    setCurrentRoom(null);
   }, [socket, currentRoom]);
 
   const endRoom = useCallback(async (): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      if (!socket || !currentRoom) {
-        resolve();
-        return;
-      }
+    if (!socket || !currentRoom) {
+      return;
+    }
 
-      socket.emit(
-        "room:end",
-        { code: currentRoom.code },
-        (response: { success?: boolean; error?: string }) => {
-          if (response?.error) {
-            reject(new Error(response.error));
-          } else {
-            setCurrentRoom(null);
-            resolve();
-          }
-        },
-      );
-    });
+    const response = await emitWithAck<{ success?: boolean; error?: string }>(
+      socket,
+      "room:end",
+      { code: currentRoom.code },
+    );
+
+    if (response?.error) {
+      throw new Error(response.error);
+    }
+
+    setCurrentRoom(null);
   }, [socket, currentRoom]);
 
   const updatePermissions = useCallback(
     async (userId: string, canControl: boolean): Promise<void> => {
-      return new Promise((resolve, reject) => {
-        if (!socket || !currentRoom) {
-          reject(new Error("Not in a room"));
-          return;
-        }
+      if (!socket || !currentRoom) {
+        throw new Error("Not in a room");
+      }
 
-        socket.emit(
-          "room:permissions",
-          {
-            code: currentRoom.code,
-            userId,
-            canControl,
-          },
-          (response: { success?: boolean; error?: string }) => {
-            if (response?.error) {
-              reject(new Error(response.error));
-            } else {
-              resolve();
-            }
-          },
-        );
-      });
+      const response = await emitWithAck<{ success?: boolean; error?: string }>(
+        socket,
+        "room:permissions",
+        {
+          code: currentRoom.code,
+          userId,
+          canControl,
+        },
+      );
+
+      if (response?.error) {
+        throw new Error(response.error);
+      }
     },
     [socket, currentRoom],
   );

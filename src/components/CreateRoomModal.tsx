@@ -68,6 +68,7 @@ export function CreateRoomModal({
   };
 
   const handleClose = () => {
+    setIsCreating(false);
     setCreatedCode(null);
     setError(null);
     setCopied(false);
