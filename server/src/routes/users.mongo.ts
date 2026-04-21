@@ -10,7 +10,7 @@ router.use(authenticateToken, requireAdmin)
 router.get('/', async (_req: AuthRequest, res: Response): Promise<void> => {
     const db = getDB()
     const users = await db.collection('users')
-        .find({}, { projection: { password_hash: 0 } })
+        .find({}, { projection: { password_hash: 0, passwordHash: 0 } })
         .sort({ created_at: -1 })
         .toArray()
 
@@ -19,7 +19,7 @@ router.get('/', async (_req: AuthRequest, res: Response): Promise<void> => {
             id: u._id.toString(),
             username: u.username,
             role: u.role,
-            created_at: u.created_at
+            created_at: u.created_at || u.createdAt
         }))
     })
 })

@@ -5,6 +5,10 @@ import { authenticateToken, requireAdmin, generateToken, AuthRequest } from '../
 
 const router = Router()
 
+function getUserPasswordHash(user: { password_hash?: string; passwordHash?: string }): string | null {
+    return user.password_hash || user.passwordHash || null
+}
+
 router.post('/login', async (req: AuthRequest, res: Response): Promise<void> => {
     const { username, password } = req.body
 
@@ -16,7 +20,21 @@ router.post('/login', async (req: AuthRequest, res: Response): Promise<void> => 
     const db = getDB()
     const user = await db.collection('users').findOne({ username })
 
-    if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+    const storedHash = user ? getUserPasswordHash(user as { password_hash?: string; passwordHash?: string }) : null
+    if (!user || !storedHash) {
+        res.status(401).json({ error: 'Invalid credentials' })
+        return
+    }
+
+    const passwordValid = (() => {
+        try {
+            return bcrypt.compareSync(password, storedHash)
+        } catch {
+            return false
+        }
+    })()
+
+    if (!passwordValid) {
         res.status(401).json({ error: 'Invalid credentials' })
         return
     }
@@ -90,7 +108,20 @@ router.put('/password', authenticateToken, async (req: AuthRequest, res: Respons
         return
     }
 
-    if (!bcrypt.compareSync(currentPassword, user.password_hash)) {
+    const storedHash = getUserPasswordHash(user as { password_hash?: string; passwordHash?: string })
+    if (!storedHash) {
+        res.status(401).json({ error: 'Current password is incorrect' })
+        return
+    }
+
+    let currentPasswordValid = false
+    try {
+        currentPasswordValid = bcrypt.compareSync(currentPassword, storedHash)
+    } catch {
+        currentPasswordValid = false
+    }
+
+    if (!currentPasswordValid) {
         res.status(401).json({ error: 'Current password is incorrect' })
         return
     }
