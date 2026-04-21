@@ -9,6 +9,7 @@ import { BookmarkPanel } from "./components/BookmarkPanel";
 import { RoomPanel } from "./components/RoomPanel";
 import { JoinRoomModal } from "./components/JoinRoomModal";
 import { CreateRoomModal } from "./components/CreateRoomModal";
+import { RoomManagerModal } from "./components/RoomManagerModal";
 import { LoginForm } from "./components/auth/LoginForm";
 import { ChangePasswordModal } from "./components/auth/ChangePasswordModal";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
@@ -35,6 +36,7 @@ import {
   KeyRound,
   Users,
   UserPlus,
+  LayoutList,
 } from "lucide-react";
 
 function AppContent() {
@@ -55,6 +57,7 @@ function AppContent() {
   const [showRoomPanel, setShowRoomPanel] = useState(false);
   const [showJoinRoom, setShowJoinRoom] = useState(false);
   const [showCreateRoom, setShowCreateRoom] = useState(false);
+  const [showRoomManager, setShowRoomManager] = useState(false);
   const isMobile = useIsMobile();
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
@@ -260,6 +263,19 @@ function AppContent() {
             </>
           )}
 
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowRoomManager(true)}
+              >
+                <LayoutList className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Room Manager</TooltipContent>
+          </Tooltip>
+
           <Button
             variant={showBookmarks ? "secondary" : "ghost"}
             size="icon"
@@ -337,6 +353,10 @@ function AppContent() {
         isOpen={showJoinRoom}
         onClose={() => setShowJoinRoom(false)}
         onJoined={() => setShowRoomPanel(true)}
+      />
+      <RoomManagerModal
+        isOpen={showRoomManager}
+        onClose={() => setShowRoomManager(false)}
       />
 
       {/* Mobile search bar (expandable) */}

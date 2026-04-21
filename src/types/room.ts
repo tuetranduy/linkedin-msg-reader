@@ -9,11 +9,30 @@ export interface RoomParticipant {
 // Room state
 export interface Room {
     code: string
+    name?: string
+    description?: string
     conversationId: string
     isCreator: boolean
     canControl: boolean
     participants: RoomParticipant[]
     currentScroll?: ScrollPosition
+}
+
+export interface AvailableRoom {
+    code: string
+    name: string
+    description: string
+    conversationId: string
+    conversationTitle: string
+    creatorId: string
+    creatorUsername: string
+    isOwner: boolean
+    isParticipant: boolean
+    canManage: boolean
+    participantCount: number
+    onlineCount: number
+    createdAt: string
+    updatedAt: string
 }
 
 // Scroll position for sync

@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { UserManagement } from "./UserManagement";
 import { ConversationManager } from "./ConversationManager";
+import { RoomManagerModal } from "@/components/RoomManagerModal";
 import { Button } from "@/components/ui/button";
 import { uploadFile } from "@/api/client";
 import {
@@ -12,6 +13,7 @@ import {
   ArrowLeft,
   FileUp,
   CheckCircle,
+  LayoutList,
 } from "lucide-react";
 
 interface AdminDashboardProps {
@@ -28,6 +30,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
     message: string;
   } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [showRoomManager, setShowRoomManager] = useState(false);
 
   const handleFileUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,6 +91,15 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
 
       <div className="container mx-auto px-3 lg:px-4 py-4 lg:py-6">
         <div className="flex flex-wrap gap-2 mb-4 lg:mb-6">
+          <Button
+            variant="outline"
+            onClick={() => setShowRoomManager(true)}
+            size="sm"
+            className="flex-1 sm:flex-none"
+          >
+            <LayoutList className="h-4 w-4 sm:mr-1" />
+            <span className="hidden sm:inline">Room Manager</span>
+          </Button>
           <Button
             variant={tab === "upload" ? "default" : "outline"}
             onClick={() => setTab("upload")}
@@ -158,7 +170,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                   }`}
                 >
                   {uploadStatus.success && (
-                    <CheckCircle className="h-4 w-4 lg:h-5 lg:w-5 flex-shrink-0" />
+                    <CheckCircle className="h-4 w-4 lg:h-5 lg:w-5 shrink-0" />
                   )}
                   {uploadStatus.message}
                 </div>
@@ -169,6 +181,11 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
           {tab === "users" && <UserManagement />}
         </div>
       </div>
+
+      <RoomManagerModal
+        isOpen={showRoomManager}
+        onClose={() => setShowRoomManager(false)}
+      />
     </div>
   );
 }

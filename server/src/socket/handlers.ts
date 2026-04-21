@@ -44,9 +44,13 @@ export function setupSocketHandlers(io: Server): void {
                 // Create room in database
                 const room = {
                     code,
+                    name: `Room ${code}`,
+                    description: '',
                     conversation_id: data.conversationId,
                     creator_id: user.id,
+                    creator_username: user.username,
                     created_at: new Date(),
+                    updated_at: new Date(),
                     participants: [{
                         user_id: user.id,
                         username: user.username,
@@ -69,6 +73,8 @@ export function setupSocketHandlers(io: Server): void {
                     success: true,
                     room: {
                         code: room.code,
+                        name: room.name,
+                        description: room.description,
                         conversationId: room.conversation_id,
                         isCreator: true,
                         canControl: true,
@@ -145,6 +151,8 @@ export function setupSocketHandlers(io: Server): void {
                     success: true,
                     room: {
                         code: room.code,
+                        name: room.name || `Room ${room.code}`,
+                        description: room.description || '',
                         conversationId: room.conversation_id,
                         isCreator,
                         canControl: participant?.can_control || false,
@@ -259,9 +267,9 @@ export function setupSocketHandlers(io: Server): void {
                     return callback?.({ error: 'Room not found' })
                 }
 
-                // Only creator can change permissions
-                if (room.creator_id !== user.id) {
-                    return callback?.({ error: 'Only room creator can change permissions' })
+                // Only admin or creator can change permissions
+                if (room.creator_id !== user.id && user.role !== 'admin') {
+                    return callback?.({ error: 'Only admin or room creator can change permissions' })
                 }
 
                 // Update participant permission
@@ -304,9 +312,9 @@ export function setupSocketHandlers(io: Server): void {
                     return callback?.({ error: 'Room not found' })
                 }
 
-                // Only creator can end room
-                if (room.creator_id !== user.id) {
-                    return callback?.({ error: 'Only room creator can end the room' })
+                // Only admin or creator can end room
+                if (room.creator_id !== user.id && user.role !== 'admin') {
+                    return callback?.({ error: 'Only admin or room creator can end the room' })
                 }
 
                 // Notify all participants
@@ -372,6 +380,8 @@ export function setupSocketHandlers(io: Server): void {
                     success: true,
                     room: {
                         code: room.code,
+                        name: room.name || `Room ${room.code}`,
+                        description: room.description || '',
                         conversationId: room.conversation_id,
                         isCreator,
                         canControl: participant?.can_control || false,
