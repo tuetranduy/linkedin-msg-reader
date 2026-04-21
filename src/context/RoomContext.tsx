@@ -42,6 +42,44 @@ interface RoomContextType {
 
 const RoomContext = createContext<RoomContextType | null>(null);
 const SOCKET_ACK_TIMEOUT_MS = 10000;
+const SOCKET_CONNECT_TIMEOUT_MS = 5000;
+
+function isTimeoutError(error: unknown): boolean {
+  return error instanceof Error && error.message.includes("timeout");
+}
+
+async function ensureSocketConnected(socket: Socket): Promise<void> {
+  if (socket.connected) {
+    return;
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error("Not connected"));
+    }, SOCKET_CONNECT_TIMEOUT_MS);
+
+    const onConnect = () => {
+      cleanup();
+      resolve();
+    };
+
+    const onConnectError = (error: Error) => {
+      cleanup();
+      reject(new Error(error.message || "Not connected"));
+    };
+
+    const cleanup = () => {
+      clearTimeout(timeout);
+      socket.off("connect", onConnect);
+      socket.off("connect_error", onConnectError);
+    };
+
+    socket.on("connect", onConnect);
+    socket.on("connect_error", onConnectError);
+    socket.connect();
+  });
+}
 
 async function emitWithAck<TResponse>(
   socket: Socket,
@@ -215,15 +253,30 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
 
   const createRoom = useCallback(
     async (conversationId: string): Promise<Room> => {
-      if (!socket || !isConnected) {
+      if (!socket) {
         throw new Error("Not connected");
       }
 
-      const response = await emitWithAck<{
-        success?: boolean;
-        error?: string;
-        room?: Room;
-      }>(socket, "room:create", { conversationId });
+      await ensureSocketConnected(socket);
+
+      const request = () =>
+        emitWithAck<{
+          success?: boolean;
+          error?: string;
+          room?: Room;
+        }>(socket, "room:create", { conversationId });
+
+      let response: { success?: boolean; error?: string; room?: Room };
+      try {
+        response = await request();
+      } catch (error) {
+        if (!isTimeoutError(error)) {
+          throw error;
+        }
+
+        await ensureSocketConnected(socket);
+        response = await request();
+      }
 
       if (response.error) {
         throw new Error(response.error);
@@ -236,14 +289,16 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
       setCurrentRoom(response.room);
       return response.room;
     },
-    [socket, isConnected],
+    [socket],
   );
 
   const joinRoom = useCallback(
     async (code: string): Promise<Room> => {
-      if (!socket || !isConnected) {
+      if (!socket) {
         throw new Error("Not connected");
       }
+
+      await ensureSocketConnected(socket);
 
       const response = await emitWithAck<{
         success?: boolean;
@@ -262,7 +317,7 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
       setCurrentRoom(response.room);
       return response.room;
     },
-    [socket, isConnected],
+    [socket],
   );
 
   const leaveRoom = useCallback(async (): Promise<void> => {
