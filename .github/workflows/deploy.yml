@@ -33,11 +33,17 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
-            # Create .env file if it doesn't exist
-            if [ ! -f .env ]; then
-              echo "Creating .env file..."
-              echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" > .env
-              echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> .env
+            # Always refresh .env from secrets to avoid stale values on VPS
+            cat > .env << 'EOF'
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            MONGODB_URI=${{ secrets.MONGODB_URI }}
+            PORT=3001
+            EOF
+
+            # Fail fast if required values are missing
+            if grep -q '^JWT_SECRET=$' .env || grep -q '^MONGODB_URI=$' .env; then
+              echo "Missing required secrets: JWT_SECRET and/or MONGODB_URI"
+              exit 1
             fi
 
             # Update nginx config if changed
@@ -48,6 +54,7 @@ jobs:
             fi
 
             # Build and deploy with docker compose
+            docker compose -f docker-compose.prod.yml config
             docker compose -f docker-compose.prod.yml build --no-cache
             docker compose -f docker-compose.prod.yml up -d
 
@@ -56,6 +63,7 @@ jobs:
 
             # Show status
             docker compose -f docker-compose.prod.yml ps
+            docker compose -f docker-compose.prod.yml logs --tail=200 backend
 
   setup:
     name: Initial Server Setup
