@@ -17,6 +17,8 @@ services:
       context: ./server
       dockerfile: Dockerfile
     container_name: linkedin-msg-backend
+    ports:
+      - "3001:3001"
     environment:
       - NODE_ENV=production
       - PORT=3001
