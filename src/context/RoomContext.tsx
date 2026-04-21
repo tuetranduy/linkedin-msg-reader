@@ -49,10 +49,9 @@ async function emitWithAck<TResponse>(
   payload: unknown,
 ): Promise<TResponse> {
   return new Promise((resolve, reject) => {
-    socket.timeout(SOCKET_ACK_TIMEOUT_MS).emit(
-      event,
-      payload,
-      (err: Error | null, response?: TResponse) => {
+    socket
+      .timeout(SOCKET_ACK_TIMEOUT_MS)
+      .emit(event, payload, (err: Error | null, response?: TResponse) => {
         if (err) {
           reject(new Error("Server timeout. Please try again."));
           return;
@@ -64,8 +63,7 @@ async function emitWithAck<TResponse>(
         }
 
         resolve(response);
-      },
-    );
+      });
   });
 }
 
