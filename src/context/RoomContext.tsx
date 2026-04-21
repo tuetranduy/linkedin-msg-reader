@@ -44,8 +44,14 @@ const RoomContext = createContext<RoomContextType | null>(null);
 const SOCKET_ACK_TIMEOUT_MS = 10000;
 const SOCKET_CONNECT_TIMEOUT_MS = 5000;
 
-function isTimeoutError(error: unknown): boolean {
-  return error instanceof Error && error.message.includes("timeout");
+function createRequestId(): string {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 async function ensureSocketConnected(socket: Socket): Promise<void> {
@@ -259,24 +265,72 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
 
       await ensureSocketConnected(socket);
 
-      const request = () =>
-        emitWithAck<{
+      const requestId = createRequestId();
+      const response = await new Promise<{
+        success?: boolean;
+        error?: string;
+        room?: Room;
+      }>((resolve, reject) => {
+        const eventName = `room:create:result:${requestId}`;
+        let settled = false;
+
+        const cleanup = () => {
+          socket.off(eventName, onEventResponse);
+          socket.off("disconnect", onDisconnect);
+          clearTimeout(timeout);
+        };
+
+        const settleWithResolve = (value: {
           success?: boolean;
           error?: string;
           room?: Room;
-        }>(socket, "room:create", { conversationId });
+        }) => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          resolve(value);
+        };
 
-      let response: { success?: boolean; error?: string; room?: Room };
-      try {
-        response = await request();
-      } catch (error) {
-        if (!isTimeoutError(error)) {
-          throw error;
-        }
+        const settleWithReject = (error: Error) => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          reject(error);
+        };
 
-        await ensureSocketConnected(socket);
-        response = await request();
-      }
+        const onEventResponse = (payload: {
+          success?: boolean;
+          error?: string;
+          room?: Room;
+        }) => {
+          settleWithResolve(payload);
+        };
+
+        const onDisconnect = () => {
+          settleWithReject(new Error("Disconnected while creating room"));
+        };
+
+        const timeout = setTimeout(() => {
+          settleWithReject(new Error("Server timeout. Please try again."));
+        }, SOCKET_ACK_TIMEOUT_MS);
+
+        socket.on(eventName, onEventResponse);
+        socket.on("disconnect", onDisconnect);
+
+        socket.emit(
+          "room:create",
+          { conversationId, requestId },
+          (ackResponse?: {
+            success?: boolean;
+            error?: string;
+            room?: Room;
+          }) => {
+            if (ackResponse) {
+              settleWithResolve(ackResponse);
+            }
+          },
+        );
+      });
 
       if (response.error) {
         throw new Error(response.error);

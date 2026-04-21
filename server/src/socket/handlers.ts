@@ -22,8 +22,22 @@ export function setupSocketHandlers(io: Server): void {
 
         console.log(`User connected: ${user.username} (${socket.id})`)
 
+        const respondToRoomCreate = (
+            requestId: string | undefined,
+            callback: unknown,
+            payload: { success?: boolean; error?: string; room?: unknown }
+        ) => {
+            if (typeof callback === 'function') {
+                ; (callback as (response: { success?: boolean; error?: string; room?: unknown }) => void)(payload)
+            }
+
+            if (requestId) {
+                socket.emit(`room:create:result:${requestId}`, payload)
+            }
+        }
+
         // Create a new room
-        socket.on('room:create', async (data: { conversationId: string }, callback) => {
+        socket.on('room:create', async (data: { conversationId: string; requestId?: string }, callback) => {
             try {
                 const db = getDB()
 
@@ -38,7 +52,8 @@ export function setupSocketHandlers(io: Server): void {
                 } while (attempts < 10)
 
                 if (attempts >= 10) {
-                    return callback({ error: 'Failed to generate unique room code' })
+                    respondToRoomCreate(data.requestId, callback, { error: 'Failed to generate unique room code' })
+                    return
                 }
 
                 // Create room in database
@@ -69,7 +84,7 @@ export function setupSocketHandlers(io: Server): void {
                 // Join socket room
                 socket.join(`room:${code}`)
 
-                callback({
+                respondToRoomCreate(data.requestId, callback, {
                     success: true,
                     room: {
                         code: room.code,
@@ -90,7 +105,7 @@ export function setupSocketHandlers(io: Server): void {
                 console.log(`Room created: ${code} by ${user.username}`)
             } catch (error) {
                 console.error('Error creating room:', error)
-                callback({ error: 'Failed to create room' })
+                respondToRoomCreate(data.requestId, callback, { error: 'Failed to create room' })
             }
         })
 
