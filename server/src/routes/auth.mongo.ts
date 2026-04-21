@@ -69,6 +69,7 @@ router.post('/register', authenticateToken, requireAdmin, async (req: AuthReques
         const passwordHash = bcrypt.hashSync(password, 12)
         const result = await db.collection('users').insertOne({
             username,
+            passwordHash,
             password_hash: passwordHash,
             role: role || 'user',
             created_at: new Date()
@@ -129,7 +130,7 @@ router.put('/password', authenticateToken, async (req: AuthRequest, res: Respons
     const newPasswordHash = bcrypt.hashSync(newPassword, 12)
     await db.collection('users').updateOne(
         { _id: new ObjectId(user._id) },
-        { $set: { password_hash: newPasswordHash } }
+        { $set: { passwordHash: newPasswordHash, password_hash: newPasswordHash } }
     )
 
     res.json({ success: true })

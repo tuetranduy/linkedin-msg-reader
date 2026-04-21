@@ -42,6 +42,7 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
         const passwordHash = bcrypt.hashSync(password, 12)
         const result = await db.collection('users').insertOne({
             username,
+            passwordHash,
             password_hash: passwordHash,
             role: role || 'user',
             created_at: new Date()
@@ -82,7 +83,9 @@ router.put('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
         updates.username = username
     }
     if (password) {
-        updates.password_hash = bcrypt.hashSync(password, 12)
+        const nextHash = bcrypt.hashSync(password, 12)
+        updates.passwordHash = nextHash
+        updates.password_hash = nextHash
     }
     if (role && ['admin', 'user'].includes(role)) {
         updates.role = role
@@ -94,7 +97,7 @@ router.put('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
 
     const updated = await db.collection('users').findOne(
         { _id: objectId },
-        { projection: { password_hash: 0 } }
+        { projection: { password_hash: 0, passwordHash: 0 } }
     )
 
     res.json({
