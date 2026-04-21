@@ -23,7 +23,7 @@ export function CreateRoomModal({
   onClose,
   onCreated,
 }: CreateRoomModalProps) {
-  const { createRoom, isConnected } = useRoom();
+  const { createRoom } = useRoom();
   const { selectedConversation } = useMessages();
   const [error, setError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -33,11 +33,6 @@ export function CreateRoomModal({
   const handleCreate = async () => {
     if (!selectedConversation) {
       setError("No conversation selected");
-      return;
-    }
-
-    if (!isConnected) {
-      setError("Not connected to server. Please wait...");
       return;
     }
 
@@ -174,7 +169,7 @@ export function CreateRoomModal({
               </Button>
               <Button
                 onClick={handleCreate}
-                disabled={!selectedConversation || isCreating || !isConnected}
+                disabled={!selectedConversation || isCreating}
                 className="w-full sm:w-auto"
               >
                 {isCreating ? (

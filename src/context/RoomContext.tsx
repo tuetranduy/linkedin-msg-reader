@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import { io, Socket } from "socket.io-client";
 import { useAuth } from "./AuthContext";
+import { apiClient } from "../api/client";
 import type {
   Room,
   RoomScrollSyncEvent,
@@ -43,6 +44,10 @@ interface RoomContextType {
 const RoomContext = createContext<RoomContextType | null>(null);
 const SOCKET_ACK_TIMEOUT_MS = 10000;
 const SOCKET_CONNECT_TIMEOUT_MS = 5000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function createRequestId(): string {
   if (
@@ -259,89 +264,138 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
 
   const createRoom = useCallback(
     async (conversationId: string): Promise<Room> => {
+      const createRoomViaHttpWithRetry = async (): Promise<Room> => {
+        let lastError: unknown = null;
+        const maxAttempts = 3;
+
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          try {
+            const room = await apiClient<Room>("/rooms", {
+              method: "POST",
+              body: JSON.stringify({ conversationId }),
+            });
+            return room;
+          } catch (error) {
+            lastError = error;
+            if (attempt < maxAttempts) {
+              await sleep(600 * attempt);
+            }
+          }
+        }
+
+        if (lastError instanceof Error) {
+          throw lastError;
+        }
+        throw new Error("Failed to create room");
+      };
+
       if (!socket) {
-        throw new Error("Not connected");
+        const room = await createRoomViaHttpWithRetry();
+        setCurrentRoom(room);
+        return room;
       }
 
-      await ensureSocketConnected(socket);
+      try {
+        await ensureSocketConnected(socket);
 
-      const requestId = createRequestId();
-      const response = await new Promise<{
-        success?: boolean;
-        error?: string;
-        room?: Room;
-      }>((resolve, reject) => {
-        const eventName = `room:create:result:${requestId}`;
-        let settled = false;
-
-        const cleanup = () => {
-          socket.off(eventName, onEventResponse);
-          socket.off("disconnect", onDisconnect);
-          clearTimeout(timeout);
-        };
-
-        const settleWithResolve = (value: {
+        const requestId = createRequestId();
+        const response = await new Promise<{
           success?: boolean;
           error?: string;
           room?: Room;
-        }) => {
-          if (settled) return;
-          settled = true;
-          cleanup();
-          resolve(value);
-        };
+        }>((resolve, reject) => {
+          const eventName = `room:create:result:${requestId}`;
+          let settled = false;
 
-        const settleWithReject = (error: Error) => {
-          if (settled) return;
-          settled = true;
-          cleanup();
-          reject(error);
-        };
+          const cleanup = () => {
+            socket.off(eventName, onEventResponse);
+            socket.off("disconnect", onDisconnect);
+            clearTimeout(timeout);
+          };
 
-        const onEventResponse = (payload: {
-          success?: boolean;
-          error?: string;
-          room?: Room;
-        }) => {
-          settleWithResolve(payload);
-        };
-
-        const onDisconnect = () => {
-          settleWithReject(new Error("Disconnected while creating room"));
-        };
-
-        const timeout = setTimeout(() => {
-          settleWithReject(new Error("Server timeout. Please try again."));
-        }, SOCKET_ACK_TIMEOUT_MS);
-
-        socket.on(eventName, onEventResponse);
-        socket.on("disconnect", onDisconnect);
-
-        socket.emit(
-          "room:create",
-          { conversationId, requestId },
-          (ackResponse?: {
+          const settleWithResolve = (value: {
             success?: boolean;
             error?: string;
             room?: Room;
           }) => {
-            if (ackResponse) {
-              settleWithResolve(ackResponse);
-            }
-          },
-        );
-      });
+            if (settled) return;
+            settled = true;
+            cleanup();
+            resolve(value);
+          };
 
-      if (response.error) {
-        throw new Error(response.error);
+          const settleWithReject = (error: Error) => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            reject(error);
+          };
+
+          const onEventResponse = (payload: {
+            success?: boolean;
+            error?: string;
+            room?: Room;
+          }) => {
+            settleWithResolve(payload);
+          };
+
+          const onDisconnect = () => {
+            settleWithReject(new Error("Disconnected while creating room"));
+          };
+
+          const timeout = setTimeout(() => {
+            settleWithReject(new Error("Server timeout. Please try again."));
+          }, SOCKET_ACK_TIMEOUT_MS);
+
+          socket.on(eventName, onEventResponse);
+          socket.on("disconnect", onDisconnect);
+
+          socket.emit(
+            "room:create",
+            { conversationId, requestId },
+            (ackResponse?: {
+              success?: boolean;
+              error?: string;
+              room?: Room;
+            }) => {
+              if (ackResponse) {
+                settleWithResolve(ackResponse);
+              }
+            },
+          );
+        });
+
+        if (response.error) {
+          throw new Error(response.error);
+        }
+
+        if (!response.room) {
+          throw new Error("Unknown error");
+        }
+
+        setCurrentRoom(response.room);
+        return response.room;
+      } catch {
+        const room = await createRoomViaHttpWithRetry();
+
+        // Best-effort join so socket_id is attached and room events continue to work.
+        try {
+          const joined = await emitWithAck<{
+            success?: boolean;
+            error?: string;
+            room?: Room;
+          }>(socket, "room:join", { code: room.code });
+          if (joined.room) {
+            setCurrentRoom(joined.room);
+            return joined.room;
+          }
+        } catch {
+          // Ignore join failure; user can still use created room code.
+        }
+
+        setCurrentRoom(room);
+        return room;
       }
-
-      if (!response.room) {
-        throw new Error("Unknown error");
-      }
-
-      setCurrentRoom(response.room);
-      return response.room;
     },
     [socket],
   );

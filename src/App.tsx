@@ -240,7 +240,7 @@ function AppContent() {
                     variant="ghost"
                     size="icon"
                     onClick={() => setShowCreateRoom(true)}
-                    disabled={!selectedConversation || !isConnected}
+                    disabled={!selectedConversation}
                   >
                     <Users className="h-5 w-5" />
                   </Button>

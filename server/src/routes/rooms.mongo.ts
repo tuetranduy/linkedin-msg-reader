@@ -27,6 +27,15 @@ interface RoomDocument {
     updated_at?: Date
 }
 
+function generateRoomCode(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    let code = ''
+    for (let i = 0; i < 6; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return code
+}
+
 function mapRoomSummary(
     room: RoomDocument,
     currentUserId: string,
@@ -55,6 +64,83 @@ function mapRoomSummary(
         updatedAt: room.updated_at || room.created_at,
     }
 }
+
+// Create room (HTTP fallback for socket issues)
+router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const db = getDB()
+        const userId = req.user!.id
+        const username = req.user!.username
+        const { conversationId } = req.body as { conversationId?: string }
+
+        if (!conversationId || !String(conversationId).trim()) {
+            res.status(400).json({ error: 'conversationId is required' })
+            return
+        }
+
+        let code = ''
+        let attempts = 0
+        do {
+            code = generateRoomCode()
+            const existing = await db.collection('read_rooms').findOne({ code })
+            if (!existing) break
+            attempts++
+        } while (attempts < 10)
+
+        if (attempts >= 10) {
+            res.status(500).json({ error: 'Failed to generate unique room code' })
+            return
+        }
+
+        const now = new Date()
+        const room: RoomDocument = {
+            code,
+            name: `Room ${code}`,
+            description: '',
+            conversation_id: String(conversationId),
+            creator_id: userId,
+            creator_username: username,
+            created_at: now,
+            updated_at: now,
+            participants: [
+                {
+                    user_id: userId,
+                    username,
+                    can_control: true,
+                    socket_id: null,
+                }
+            ],
+            current_scroll: {
+                message_id: null,
+                position: 0,
+            }
+        }
+
+        await db.collection('read_rooms').insertOne(room)
+
+        res.json({
+            code: room.code,
+            name: room.name,
+            description: room.description,
+            conversationId: room.conversation_id,
+            isCreator: true,
+            canControl: true,
+            participants: room.participants.map((p) => ({
+                id: p.user_id,
+                username: p.username,
+                canControl: p.can_control,
+                isOnline: !!p.socket_id,
+            })),
+            currentScroll: {
+                messageId: null,
+                position: 0,
+            }
+        })
+    } catch (error) {
+        console.error('Error creating room via HTTP:', error)
+        res.status(500).json({ error: 'Failed to create room' })
+    }
+})
 
 // Get user's active rooms
 router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
