@@ -23,7 +23,7 @@ export function JoinRoomModal({
   onClose,
   onJoined,
 }: JoinRoomModalProps) {
-  const { joinRoom, isConnected } = useRoom();
+  const { joinRoom } = useRoom();
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
@@ -33,11 +33,6 @@ export function JoinRoomModal({
 
     if (!code.trim()) {
       setError("Please enter a room code");
-      return;
-    }
-
-    if (!isConnected) {
-      setError("Not connected to server. Please wait...");
       return;
     }
 
@@ -116,7 +111,7 @@ export function JoinRoomModal({
             </Button>
             <Button
               type="submit"
-              disabled={code.length !== 6 || isJoining || !isConnected}
+              disabled={code.length !== 6 || isJoining}
               className="w-full sm:w-auto"
             >
               {isJoining ? (

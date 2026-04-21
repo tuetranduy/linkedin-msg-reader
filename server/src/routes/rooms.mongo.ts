@@ -257,6 +257,86 @@ router.get('/:code', async (req: AuthRequest, res: Response): Promise<void> => {
     }
 })
 
+// Join room by code (HTTP fallback for socket issues)
+router.post('/:code/join', async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const db = getDB()
+        const code = (req.params.code as string).toUpperCase()
+        const userId = req.user!.id
+        const username = req.user!.username
+
+        const room = await db.collection<RoomDocument>('read_rooms').findOne({ code })
+
+        if (!room) {
+            res.status(404).json({ error: 'Room not found' })
+            return
+        }
+
+        const existingParticipant = room.participants.find((p) => p.user_id === userId)
+
+        if (existingParticipant) {
+            await db.collection('read_rooms').updateOne(
+                { code, 'participants.user_id': userId },
+                {
+                    $set: {
+                        'participants.$.username': username,
+                        updated_at: new Date(),
+                    }
+                }
+            )
+        } else {
+            await db.collection('read_rooms').updateOne(
+                { code },
+                {
+                    $push: {
+                        participants: {
+                            user_id: userId,
+                            username,
+                            can_control: false,
+                            socket_id: null,
+                            joined_at: new Date(),
+                        }
+                    } as any,
+                    $set: {
+                        updated_at: new Date(),
+                    }
+                }
+            )
+        }
+
+        const updatedRoom = await db.collection<RoomDocument>('read_rooms').findOne({ code })
+
+        if (!updatedRoom) {
+            res.status(500).json({ error: 'Failed to fetch joined room' })
+            return
+        }
+
+        const participant = updatedRoom.participants.find((p) => p.user_id === userId)
+        const isCreator = updatedRoom.creator_id === userId
+
+        res.json({
+            code: updatedRoom.code,
+            name: updatedRoom.name || `Room ${updatedRoom.code}`,
+            description: updatedRoom.description || '',
+            conversationId: updatedRoom.conversation_id,
+            isCreator,
+            canControl: participant?.can_control || false,
+            participants: updatedRoom.participants.map((p) => ({
+                id: p.user_id,
+                username: p.username,
+                canControl: p.can_control,
+                isOnline: !!p.socket_id,
+            })),
+            currentScroll: updatedRoom.current_scroll,
+            updatedAt: updatedRoom.updated_at || updatedRoom.created_at,
+            createdAt: updatedRoom.created_at,
+        })
+    } catch (error) {
+        console.error('Error joining room via HTTP:', error)
+        res.status(500).json({ error: 'Failed to join room' })
+    }
+})
+
 // Update room metadata (admin or room owner)
 router.put('/:code', async (req: AuthRequest, res: Response): Promise<void> => {
     try {

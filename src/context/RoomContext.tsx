@@ -143,7 +143,7 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
 
     const socketUrl = import.meta.env.PROD
       ? window.location.origin
-      : "http://localhost:3001";
+      : "http://localhost:3000";
 
     const newSocket = io(socketUrl, {
       auth: { token },
@@ -402,28 +402,82 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
 
   const joinRoom = useCallback(
     async (code: string): Promise<Room> => {
+      const normalizedCode = code.trim().toUpperCase();
+
+      const joinRoomViaHttpWithRetry = async (): Promise<Room> => {
+        let lastError: unknown = null;
+        const maxAttempts = 3;
+
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          try {
+            const room = await apiClient<Room>(
+              `/rooms/${encodeURIComponent(normalizedCode)}/join`,
+              {
+                method: "POST",
+              },
+            );
+            return room;
+          } catch (error) {
+            lastError = error;
+            if (attempt < maxAttempts) {
+              await sleep(600 * attempt);
+            }
+          }
+        }
+
+        if (lastError instanceof Error) {
+          throw lastError;
+        }
+
+        throw new Error("Failed to join room");
+      };
+
       if (!socket) {
-        throw new Error("Not connected");
+        const room = await joinRoomViaHttpWithRetry();
+        setCurrentRoom(room);
+        return room;
       }
 
-      await ensureSocketConnected(socket);
+      try {
+        await ensureSocketConnected(socket);
 
-      const response = await emitWithAck<{
-        success?: boolean;
-        error?: string;
-        room?: Room;
-      }>(socket, "room:join", { code });
+        const response = await emitWithAck<{
+          success?: boolean;
+          error?: string;
+          room?: Room;
+        }>(socket, "room:join", { code: normalizedCode });
 
-      if (response.error) {
-        throw new Error(response.error);
+        if (response.error) {
+          throw new Error(response.error);
+        }
+
+        if (!response.room) {
+          throw new Error("Unknown error");
+        }
+
+        setCurrentRoom(response.room);
+        return response.room;
+      } catch {
+        const room = await joinRoomViaHttpWithRetry();
+
+        // Best-effort socket join so room events continue to work.
+        try {
+          const joined = await emitWithAck<{
+            success?: boolean;
+            error?: string;
+            room?: Room;
+          }>(socket, "room:join", { code: room.code });
+          if (joined.room) {
+            setCurrentRoom(joined.room);
+            return joined.room;
+          }
+        } catch {
+          // Ignore socket join failure; user can still access room via API data.
+        }
+
+        setCurrentRoom(room);
+        return room;
       }
-
-      if (!response.room) {
-        throw new Error("Unknown error");
-      }
-
-      setCurrentRoom(response.room);
-      return response.room;
     },
     [socket],
   );
