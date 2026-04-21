@@ -120,7 +120,7 @@ export function MessageList() {
     // Clear highlight after animation
     const timeout = setTimeout(() => {
       setHighlightedMessageId(null);
-    }, 3000);
+    }, 3001);
 
     return () => clearTimeout(timeout);
   }, [

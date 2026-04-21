@@ -30,7 +30,7 @@ Backend requires these env vars (injected via `.env` on VPS, never committed):
 - `MONGODB_URI` — full MongoDB connection string
 - `JWT_SECRET` — strong random secret
 - `NODE_ENV=production`
-- `PORT=3000`
+- `PORT=3001`
 
 ## GitHub Actions: Deploy Workflow
 

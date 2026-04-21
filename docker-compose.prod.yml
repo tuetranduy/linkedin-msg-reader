@@ -19,7 +19,7 @@ services:
     container_name: linkedin-msg-backend
     environment:
       - NODE_ENV=production
-      - PORT=3000
+      - PORT=3001
       - MONGODB_URI=${MONGODB_URI}
       - JWT_SECRET=${JWT_SECRET:-change-this-in-production}
     volumes:

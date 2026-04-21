@@ -36,11 +36,11 @@ Backend reads from `.env` (not committed):
 
 - `JWT_SECRET` — required in production
 - `MONGODB_URI` — defaults to `mongodb://localhost:27017/linkedin-msg`
-- `PORT` — defaults to `3001` (dev) / `3000` (prod container)
+- `PORT` — defaults to `3001` (dev) / `3001` (prod container)
 
 ## Port Conventions
 
 - Frontend dev: `5173` (Vite default, also uses `5174–5176` as fallbacks)
 - Backend dev: `3001`
 - Frontend prod container: `3002` (mapped from nginx on `80`)
-- Backend prod container: `3000`
+- Backend prod container: `3001`

@@ -32,6 +32,6 @@ COPY --from=builder /app/dist ./dist
 # Create data directory for uploads
 RUN mkdir -p /app/data
 
-EXPOSE 3000
+EXPOSE 3001
 
 CMD ["node", "dist/index.js"]

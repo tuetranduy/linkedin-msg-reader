@@ -141,9 +141,9 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
     const token = localStorage.getItem("auth_token");
     if (!token) return;
 
-    const socketUrl = import.meta.env.PROD
-      ? window.location.origin
-      : "http://localhost:3000";
+    const socketUrl =
+      import.meta.env.VITE_SOCKET_URL ||
+      (import.meta.env.PROD ? window.location.origin : undefined);
 
     const newSocket = io(socketUrl, {
       auth: { token },
