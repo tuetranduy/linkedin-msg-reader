@@ -19,7 +19,9 @@ router.get('/', async (_req: AuthRequest, res: Response): Promise<void> => {
             id: u._id.toString(),
             username: u.username,
             role: u.role,
-            created_at: u.created_at || u.createdAt
+            created_at: u.created_at || u.createdAt,
+            is_online: Boolean(u.is_online),
+            last_seen_at: u.last_seen_at || u.lastSeenAt || null
         }))
     })
 })
@@ -45,7 +47,9 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
             passwordHash,
             password_hash: passwordHash,
             role: role || 'user',
-            created_at: new Date()
+            created_at: new Date(),
+            is_online: false,
+            last_seen_at: null
         })
         res.json({ user: { id: result.insertedId.toString(), username, role: role || 'user' } })
     } catch (err: unknown) {

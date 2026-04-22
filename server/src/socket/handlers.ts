@@ -13,11 +13,31 @@ function generateRoomCode(): string {
 }
 
 export function setupSocketHandlers(io: Server): void {
+    const onlineConnectionCounts = new Map<string, number>()
+
     io.on('connection', async (socket: AuthenticatedSocket) => {
         const user = socket.user
         if (!user) {
             socket.disconnect()
             return
+        }
+
+        const currentCount = onlineConnectionCounts.get(user.id) || 0
+        onlineConnectionCounts.set(user.id, currentCount + 1)
+
+        try {
+            const db = getDB()
+            await db.collection('users').updateOne(
+                { _id: new ObjectId(user.id) },
+                {
+                    $set: {
+                        is_online: true,
+                        last_seen_at: new Date()
+                    }
+                }
+            )
+        } catch (error) {
+            console.error('Error updating user online status on connect:', error)
         }
 
         console.log(`User connected: ${user.username} (${socket.id})`)
@@ -351,7 +371,26 @@ export function setupSocketHandlers(io: Server): void {
         // Handle disconnect
         socket.on('disconnect', async () => {
             try {
+                const currentCount = onlineConnectionCounts.get(user.id) || 0
+                if (currentCount <= 1) {
+                    onlineConnectionCounts.delete(user.id)
+                } else {
+                    onlineConnectionCounts.set(user.id, currentCount - 1)
+                }
+
                 const db = getDB()
+
+                if (!onlineConnectionCounts.has(user.id)) {
+                    await db.collection('users').updateOne(
+                        { _id: new ObjectId(user.id) },
+                        {
+                            $set: {
+                                is_online: false,
+                                last_seen_at: new Date()
+                            }
+                        }
+                    )
+                }
 
                 // Find all rooms user was in and update socket_id
                 await db.collection('read_rooms').updateMany(

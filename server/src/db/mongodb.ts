@@ -43,7 +43,9 @@ export async function connectDB(): Promise<Db> {
             passwordHash,
             password_hash: passwordHash,
             role: 'admin',
-            created_at: new Date()
+            created_at: new Date(),
+            is_online: false,
+            last_seen_at: null
         })
         console.log('Created default admin user: admin/admin123')
     }

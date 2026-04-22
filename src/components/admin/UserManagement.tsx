@@ -5,18 +5,20 @@ import { Input } from "@/components/ui/input";
 import { Plus, Trash2, Edit2, X, Check, User, KeyRound } from "lucide-react";
 
 interface User {
-  id: number;
+  id: string;
   username: string;
   role: "admin" | "user";
   created_at: string;
+  is_online: boolean;
+  last_seen_at: string | null;
 }
 
 export function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [resetPasswordId, setResetPasswordId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [resetPasswordId, setResetPasswordId] = useState<string | null>(null);
   const [resetPassword, setResetPassword] = useState("");
   const [formData, setFormData] = useState({
     username: "",
@@ -56,7 +58,7 @@ export function UserManagement() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm("Delete this user?")) return;
     try {
       await apiClient(`/users/${id}`, { method: "DELETE" });
@@ -66,7 +68,7 @@ export function UserManagement() {
     }
   };
 
-  const handleUpdate = async (id: number) => {
+  const handleUpdate = async (id: string) => {
     try {
       await apiClient(`/users/${id}`, {
         method: "PUT",
@@ -80,7 +82,7 @@ export function UserManagement() {
     }
   };
 
-  const handleResetPassword = async (id: number) => {
+  const handleResetPassword = async (id: string) => {
     if (resetPassword.length < 6) {
       alert("Password must be at least 6 characters");
       return;
@@ -98,6 +100,16 @@ export function UserManagement() {
   if (isLoading) {
     return <div className="p-4">Loading users...</div>;
   }
+
+  const formatStatus = (user: User): string => {
+    if (user.is_online) {
+      return "Online";
+    }
+    if (user.last_seen_at) {
+      return `Last seen ${new Date(user.last_seen_at).toLocaleString()}`;
+    }
+    return "Never seen";
+  };
 
   return (
     <div className="space-y-4">
@@ -167,6 +179,7 @@ export function UserManagement() {
             <tr>
               <th className="px-4 py-2 text-left">Username</th>
               <th className="px-4 py-2 text-left">Role</th>
+              <th className="px-4 py-2 text-left">Status</th>
               <th className="px-4 py-2 text-left">Created</th>
               <th className="px-4 py-2 text-right">Actions</th>
             </tr>
@@ -210,6 +223,17 @@ export function UserManagement() {
                       {user.role}
                     </span>
                   )}
+                </td>
+                <td className="px-4 py-2 text-sm">
+                  <span
+                    className={
+                      user.is_online
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-muted-foreground"
+                    }
+                  >
+                    {formatStatus(user)}
+                  </span>
                 </td>
                 <td className="px-4 py-2 text-muted-foreground text-sm">
                   {new Date(user.created_at).toLocaleDateString()}
@@ -364,6 +388,15 @@ export function UserManagement() {
                       <span className="text-xs text-muted-foreground">
                         {new Date(user.created_at).toLocaleDateString()}
                       </span>
+                    </div>
+                    <div
+                      className={`mt-1 text-xs ${
+                        user.is_online
+                          ? "text-green-600 dark:text-green-400"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {formatStatus(user)}
                     </div>
                   </div>
                 </div>

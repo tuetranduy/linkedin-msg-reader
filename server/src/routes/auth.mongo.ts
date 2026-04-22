@@ -72,7 +72,9 @@ router.post('/register', authenticateToken, requireAdmin, async (req: AuthReques
             passwordHash,
             password_hash: passwordHash,
             role: role || 'user',
-            created_at: new Date()
+            created_at: new Date(),
+            is_online: false,
+            last_seen_at: null
         })
         res.json({ user: { id: result.insertedId.toString(), username, role: role || 'user' } })
     } catch (err: unknown) {
