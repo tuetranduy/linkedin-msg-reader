@@ -252,7 +252,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
       setNavigationProgress(0);
       let found = false;
       let currentMessages = [...selectedConversation.messages];
-      let hasMore = hasMoreMessages;
+      let hasMore = true;
       const total = Math.max(totalMessageCount, currentMessages.length, 1);
 
       while (!found && hasMore) {

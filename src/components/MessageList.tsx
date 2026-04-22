@@ -59,6 +59,7 @@ export function MessageList({ onShareMessage }: MessageListProps) {
     React.useState(false);
   const isReceivingSyncRef = useRef(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastConversationIdRef = useRef<string | null>(null);
 
   // Build items list with date separators
   const items: MessageItem[] = React.useMemo(() => {
@@ -340,20 +341,29 @@ export function MessageList({ onShareMessage }: MessageListProps) {
 
   // Scroll to bottom on conversation change
   useEffect(() => {
-    if (
-      selectedConversation &&
-      !highlightedMessageId &&
-      items.length > 0 &&
-      !isNavigatingToMessage
-    ) {
-      // Small delay to allow virtualizer to initialize
-      setTimeout(() => {
-        virtualizer.scrollToIndex(items.length - 1, { align: "end" });
-      }, 100);
+    const currentConversationId = selectedConversation?.id ?? null;
+
+    if (!currentConversationId) {
+      lastConversationIdRef.current = null;
+      return;
     }
+
+    const conversationChanged =
+      lastConversationIdRef.current !== currentConversationId;
+    lastConversationIdRef.current = currentConversationId;
+
+    if (!conversationChanged || items.length === 0 || isNavigatingToMessage) {
+      return;
+    }
+
+    // Small delay to allow virtualizer to initialize
+    const timeout = setTimeout(() => {
+      virtualizer.scrollToIndex(items.length - 1, { align: "end" });
+    }, 100);
+
+    return () => clearTimeout(timeout);
   }, [
     selectedConversation?.id,
-    highlightedMessageId,
     items.length,
     isNavigatingToMessage,
     virtualizer,
