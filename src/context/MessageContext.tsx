@@ -231,8 +231,6 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
     if (isLoadingConversation) return;
 
     const targetMessageId = pendingMessageNavigation.messageId;
-    const targetDate = pendingMessageNavigation.messageDate;
-
     // Check if message is already loaded
     const messageExists = selectedConversation.messages.some(
       (m) => m.id === targetMessageId,
@@ -260,12 +258,6 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
       while (!found && hasMore) {
         const oldestMessage = currentMessages[0];
         if (!oldestMessage) break;
-
-        // If the oldest loaded message is older than our target, the message should be in our range
-        if (oldestMessage.date <= targetDate) {
-          // Message should be in range but not found - it might have been deleted
-          break;
-        }
 
         try {
           const data = await apiClient<{

@@ -68,7 +68,6 @@ function AppContent() {
     bookmarks,
     isLoading,
     selectConversation,
-    refreshConversations,
     goToBookmark,
   } = useMessages();
   const { currentRoom, isInRoom, isConnected } = useRoom();
@@ -197,7 +196,6 @@ function AppContent() {
       ),
     );
 
-    await refreshConversations();
     if (share.messageId) {
       goToBookmark({
         messageId: share.messageId,
