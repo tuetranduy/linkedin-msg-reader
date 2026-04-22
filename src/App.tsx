@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { MessageProvider, useMessages } from "./context/MessageContext";
 import { RoomProvider, useRoom } from "./context/RoomContext";
@@ -93,8 +93,8 @@ function AppContent() {
   const isMobile = useIsMobile();
   const [showConversationPanel, setShowConversationPanel] = useState(true);
 
-  const unreadSharedCount = receivedShares.filter(
-    (share) => !share.isRead,
+  const sharedMessageCount = receivedShares.filter(
+    (share) => share.sharedType === "message",
   ).length;
   const shouldShowMessagePanel = !isMobile && showConversationPanel;
 
@@ -128,6 +128,11 @@ function AppContent() {
       setIsLoadingReceivedShares(false);
     }
   };
+
+  useEffect(() => {
+    void loadReceivedShares();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleOpenShareConversation = async () => {
     if (!selectedConversation) return;
@@ -399,9 +404,9 @@ function AppContent() {
               title="Shared Chats"
             >
               <Inbox className="h-5 w-5" />
-              {unreadSharedCount > 0 && (
+              {sharedMessageCount > 0 && (
                 <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
-                  {unreadSharedCount > 9 ? "9+" : unreadSharedCount}
+                  {sharedMessageCount > 9 ? "9+" : sharedMessageCount}
                 </span>
               )}
             </Button>
@@ -599,9 +604,9 @@ function AppContent() {
                 className="relative"
               >
                 <Inbox className="h-5 w-5" />
-                {unreadSharedCount > 0 && (
+                {sharedMessageCount > 0 && (
                   <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
-                    {unreadSharedCount > 9 ? "9+" : unreadSharedCount}
+                    {sharedMessageCount > 9 ? "9+" : sharedMessageCount}
                   </span>
                 )}
               </Button>

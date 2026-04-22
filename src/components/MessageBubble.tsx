@@ -15,7 +15,7 @@ import {
   Image as ImageIcon,
   Share2,
 } from "lucide-react";
-import { cn, formatMessageTime, isUrl, isImageUrl } from "@/lib/utils";
+import { cn, formatMessageDateTime, isUrl, isImageUrl } from "@/lib/utils";
 
 // Configure DOMPurify for safe HTML rendering
 const purifyConfig = {
@@ -269,7 +269,7 @@ export function MessageBubble({
           )}
         >
           <span className="text-xs text-muted-foreground">
-            {formatMessageTime(message.date)}
+            {formatMessageDateTime(message.date)}
           </span>
 
           <Tooltip>

@@ -24,6 +24,16 @@ export function formatMessageTime(date: Date): string {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
+export function formatMessageDateTime(date: Date): string {
+    return date.toLocaleString([], {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    })
+}
+
 export function formatDateSeparator(date: Date): string {
     const now = new Date()
     const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
