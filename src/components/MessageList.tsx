@@ -11,6 +11,8 @@ import {
   ChevronUp,
   ChevronsUp,
   Loader2,
+  Pause,
+  RotateCcw,
   Users,
 } from "lucide-react";
 import { formatDateSeparator, isSameDay } from "@/lib/utils";
@@ -57,9 +59,12 @@ export function MessageList({ onShareMessage }: MessageListProps) {
   const [isGoingToDate, setIsGoingToDate] = React.useState(false);
   const [pendingDateNavigation, setPendingDateNavigation] =
     React.useState(false);
+  const [isSyncPaused, setIsSyncPaused] = React.useState(false);
+  const [hasPendingSync, setHasPendingSync] = React.useState(false);
   const isReceivingSyncRef = useRef(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastConversationIdRef = useRef<string | null>(null);
+  const latestRoomSyncRef = useRef<RoomScrollSyncEvent | null>(null);
 
   // Build items list with date separators
   const items: MessageItem[] = React.useMemo(() => {
@@ -106,6 +111,36 @@ export function MessageList({ onShareMessage }: MessageListProps) {
     ),
     overscan: 10,
   });
+
+  const scrollToMessageId = useCallback(
+    (messageId: string, behavior: "smooth" | "auto" = "smooth") => {
+      if (!selectedConversation) return false;
+
+      const messageIndex = selectedConversation.messages.findIndex(
+        (m) => m.id === messageId,
+      );
+      if (messageIndex === -1) return false;
+
+      let itemIndex = 0;
+      for (let i = 0; i < items.length; i++) {
+        if (
+          items[i].type === "message" &&
+          items[i].messageIndex === messageIndex
+        ) {
+          itemIndex = i;
+          break;
+        }
+      }
+
+      virtualizer.scrollToIndex(itemIndex, {
+        align: "center",
+        behavior,
+      });
+
+      return true;
+    },
+    [selectedConversation, items, virtualizer],
+  );
 
   // Scroll to highlighted message
   useEffect(() => {
@@ -276,39 +311,33 @@ export function MessageList({ onShareMessage }: MessageListProps) {
   useEffect(() => {
     if (!isInRoom) {
       setSyncController(null);
+      setIsSyncPaused(false);
+      setHasPendingSync(false);
+      latestRoomSyncRef.current = null;
       return;
     }
 
     const handleScrollSync = (event: RoomScrollSyncEvent) => {
-      if (!selectedConversation || !event.messageId) return;
+      if (!selectedConversation) return;
+
+      latestRoomSyncRef.current = event;
+      setSyncController(event.from.username);
+
+      if (isSyncPaused) {
+        setHasPendingSync(Boolean(event.messageId));
+        return;
+      }
+
+      if (!event.messageId) return;
 
       // Set flag to prevent emitting while receiving
       isReceivingSyncRef.current = true;
-      setSyncController(event.from.username);
 
-      // Find the message index
-      const messageIndex = selectedConversation.messages.findIndex(
-        (m) => m.id === event.messageId,
-      );
-
-      if (messageIndex === -1) return;
-
-      // Find the item index (accounting for date separators)
-      let itemIndex = 0;
-      for (let i = 0; i < items.length; i++) {
-        if (
-          items[i].type === "message" &&
-          items[i].messageIndex === messageIndex
-        ) {
-          itemIndex = i;
-          break;
-        }
+      const didScroll = scrollToMessageId(event.messageId, "smooth");
+      if (!didScroll && parentRef.current) {
+        parentRef.current.scrollTo({ top: event.position, behavior: "smooth" });
       }
-
-      virtualizer.scrollToIndex(itemIndex, {
-        align: "center",
-        behavior: "smooth",
-      });
+      setHasPendingSync(false);
 
       // Clear receiving flag after scroll settles
       setTimeout(() => {
@@ -328,13 +357,37 @@ export function MessageList({ onShareMessage }: MessageListProps) {
     };
   }, [
     isInRoom,
-    currentRoom?.canControl,
     selectedConversation,
-    items,
-    virtualizer,
+    isSyncPaused,
+    scrollToMessageId,
     onScrollSync,
     offScrollSync,
   ]);
+
+  const handlePauseSync = () => {
+    setIsSyncPaused(true);
+    setHasPendingSync(false);
+  };
+
+  const handleResync = () => {
+    setIsSyncPaused(false);
+    const latest = latestRoomSyncRef.current;
+    if (!latest?.messageId) {
+      setHasPendingSync(false);
+      return;
+    }
+
+    isReceivingSyncRef.current = true;
+    const didScroll = scrollToMessageId(latest.messageId, "smooth");
+    if (!didScroll && parentRef.current) {
+      parentRef.current.scrollTo({ top: latest.position, behavior: "smooth" });
+    }
+    setHasPendingSync(false);
+
+    setTimeout(() => {
+      isReceivingSyncRef.current = false;
+    }, 500);
+  };
 
   // Scroll to bottom on conversation change
   useEffect(() => {
@@ -600,9 +653,13 @@ export function MessageList({ onShareMessage }: MessageListProps) {
       {isInRoom && (
         <div className="absolute bottom-16 left-2 right-2 z-20 flex max-w-[calc(100%-1rem)] items-center gap-2 rounded-lg border border-border bg-background/90 px-3 py-2 shadow-lg backdrop-blur-sm sm:bottom-4 sm:left-4 sm:right-auto sm:max-w-xs">
           <Users className="h-4 w-4 text-primary" />
-          <span className="min-w-0 text-xs">
-            {currentRoom?.canControl ? (
-              <span className="text-green-600 dark:text-green-400">
+          <div className="min-w-0 flex-1 text-xs">
+            {isSyncPaused ? (
+              <span className="block truncate text-amber-600 dark:text-amber-400">
+                Sync paused
+              </span>
+            ) : currentRoom?.canControl ? (
+              <span className="block truncate text-green-600 dark:text-green-400">
                 You control scroll
               </span>
             ) : syncController ? (
@@ -614,7 +671,33 @@ export function MessageList({ onShareMessage }: MessageListProps) {
                 Following room scroll
               </span>
             )}
-          </span>
+          </div>
+          {isSyncPaused ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={handleResync}
+              title="Re-sync to current room scroll"
+            >
+              <RotateCcw className="mr-1 h-3 w-3" />
+              Re-sync
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={handlePauseSync}
+              title="Pause sync on this device"
+            >
+              <Pause className="mr-1 h-3 w-3" />
+              Pause
+            </Button>
+          )}
+          {hasPendingSync && isSyncPaused && (
+            <span className="text-[10px] text-muted-foreground">Update</span>
+          )}
         </div>
       )}
     </div>
