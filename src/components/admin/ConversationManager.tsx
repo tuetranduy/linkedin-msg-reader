@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { apiClient } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff, Users, Search, MessageSquare } from "lucide-react";
+import { Eye, EyeOff, Users, Search, MessageSquare, Edit2 } from "lucide-react";
 
 interface Conversation {
   id: string;
@@ -64,6 +64,31 @@ export function ConversationManager() {
       setConversations((prev) => prev.map((c) => ({ ...c, isVisible })));
     } catch (err) {
       console.error("Failed to update visibility:", err);
+    }
+  };
+
+  const renameConversation = async (id: string, currentTitle: string) => {
+    const nextTitle = window.prompt(
+      "Enter a new conversation title",
+      currentTitle,
+    );
+    if (!nextTitle) return;
+
+    const trimmedTitle = nextTitle.trim();
+    if (!trimmedTitle || trimmedTitle === currentTitle) return;
+
+    try {
+      await apiClient(`/conversations/${id}/title`, {
+        method: "PUT",
+        body: JSON.stringify({ title: trimmedTitle }),
+      });
+      setConversations((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, title: trimmedTitle } : c)),
+      );
+    } catch (err) {
+      alert(
+        err instanceof Error ? err.message : "Failed to rename conversation",
+      );
     }
   };
 
@@ -134,13 +159,14 @@ export function ConversationManager() {
       </div>
 
       {/* Desktop: Table view */}
-      <div className="hidden md:block border rounded-lg overflow-hidden max-h-[500px] overflow-y-auto">
+      <div className="hidden md:block border rounded-lg overflow-hidden max-h-125 overflow-y-auto">
         <table className="w-full">
           <thead className="bg-muted sticky top-0">
             <tr>
               <th className="px-4 py-2 text-left">Conversation</th>
               <th className="px-4 py-2 text-center">Messages</th>
               <th className="px-4 py-2 text-center">Last Activity</th>
+              <th className="px-4 py-2 text-center">Rename</th>
               <th className="px-4 py-2 text-center">Visible</th>
             </tr>
           </thead>
@@ -148,10 +174,10 @@ export function ConversationManager() {
             {filteredConversations.map((conv) => (
               <tr key={conv.id} className="border-t hover:bg-muted/50">
                 <td className="px-4 py-2">
-                  <div className="font-medium truncate max-w-[300px]">
+                  <div className="font-medium truncate max-w-75">
                     {conv.title}
                   </div>
-                  <div className="text-xs text-muted-foreground truncate max-w-[300px]">
+                  <div className="text-xs text-muted-foreground truncate max-w-75">
                     {conv.participants.join(", ")}
                   </div>
                 </td>
@@ -160,6 +186,16 @@ export function ConversationManager() {
                 </td>
                 <td className="px-4 py-2 text-center text-sm text-muted-foreground">
                   {new Date(conv.last_message_date).toLocaleDateString()}
+                </td>
+                <td className="px-4 py-2 text-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => renameConversation(conv.id, conv.title)}
+                    title="Rename conversation"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
                 </td>
                 <td className="px-4 py-2 text-center">
                   <Button
@@ -191,6 +227,12 @@ export function ConversationManager() {
                   {conv.participants.join(", ")}
                 </div>
                 <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                  <button
+                    onClick={() => renameConversation(conv.id, conv.title)}
+                    className="inline-flex items-center gap-1 hover:text-foreground"
+                  >
+                    <Edit2 className="h-3 w-3" /> Rename
+                  </button>
                   <span className="flex items-center gap-1">
                     <MessageSquare className="h-3 w-3" />
                     {conv.message_count}
@@ -204,7 +246,7 @@ export function ConversationManager() {
                 variant={conv.isVisible ? "default" : "ghost"}
                 size="sm"
                 onClick={() => toggleVisibility(conv.id, conv.isVisible)}
-                className="flex-shrink-0"
+                className="shrink-0"
               >
                 {conv.isVisible ? (
                   <Eye className="h-4 w-4" />

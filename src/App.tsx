@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { MessageProvider, useMessages } from "./context/MessageContext";
 import { RoomProvider, useRoom } from "./context/RoomContext";
@@ -14,6 +14,7 @@ import { LoginForm } from "./components/auth/LoginForm";
 import { ChangePasswordModal } from "./components/auth/ChangePasswordModal";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { Button } from "./components/ui/button";
+import { apiClient } from "./api/client";
 import {
   TooltipProvider,
   Tooltip,
@@ -21,11 +22,9 @@ import {
   TooltipContent,
 } from "./components/ui/tooltip";
 import { Sheet, SheetContent, SheetTitle } from "./components/ui/sheet";
-import { useIsMobile } from "./hooks/useMediaQuery";
+import { useIsMobile, useIsTablet } from "./hooks/useMediaQuery";
 import {
   Bookmark,
-  Moon,
-  Sun,
   MessageSquare,
   Settings,
   LogOut,
@@ -37,16 +36,34 @@ import {
   Users,
   UserPlus,
   LayoutList,
+  Share2,
+  Inbox,
 } from "lucide-react";
 
+interface ShareTargetUser {
+  id: string;
+  username: string;
+}
+
+interface ReceivedShare {
+  id: string;
+  conversationId: string;
+  conversationTitle: string;
+  sharedBy: string;
+  createdAt: string;
+  openedAt: string | null;
+  isRead: boolean;
+}
+
 function AppContent() {
-  const { isAdmin, logout } = useAuth();
+  const { isAdmin, logout, user } = useAuth();
   const {
     conversations,
     selectedConversation,
     bookmarks,
     isLoading,
     selectConversation,
+    refreshConversations,
   } = useMessages();
   const { currentRoom, isInRoom, isConnected } = useRoom();
   const [showBookmarks, setShowBookmarks] = useState(false);
@@ -58,17 +75,230 @@ function AppContent() {
   const [showJoinRoom, setShowJoinRoom] = useState(false);
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [showRoomManager, setShowRoomManager] = useState(false);
+  const [showShareConversation, setShowShareConversation] = useState(false);
+  const [showSharedChats, setShowSharedChats] = useState(false);
+  const [shareTargets, setShareTargets] = useState<ShareTargetUser[]>([]);
+  const [receivedShares, setReceivedShares] = useState<ReceivedShare[]>([]);
+  const [isLoadingShareTargets, setIsLoadingShareTargets] = useState(false);
+  const [isLoadingReceivedShares, setIsLoadingReceivedShares] = useState(false);
+  const [sharingToUserId, setSharingToUserId] = useState<string | null>(null);
+  const [shareMessage, setShareMessage] = useState<string | null>(null);
+  const [shareError, setShareError] = useState<string | null>(null);
   const isMobile = useIsMobile();
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window !== "undefined") {
-      return window.matchMedia("(prefers-color-scheme: dark)").matches;
-    }
-    return false;
-  });
+  const isTablet = useIsTablet();
+  const [showTabletMessagePanel, setShowTabletMessagePanel] = useState(true);
 
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", darkMode);
-  }, [darkMode]);
+  const unreadSharedCount = receivedShares.filter(
+    (share) => !share.isRead,
+  ).length;
+  const shouldShowMessagePanel =
+    !isMobile && (!isTablet || showTabletMessagePanel);
+
+  const loadShareTargets = async () => {
+    setIsLoadingShareTargets(true);
+    setShareError(null);
+    try {
+      const data = await apiClient<{ users: ShareTargetUser[] }>(
+        "/conversations/share/users",
+      );
+      setShareTargets(data.users);
+    } catch (error) {
+      setShareError(
+        error instanceof Error ? error.message : "Failed to load users",
+      );
+    } finally {
+      setIsLoadingShareTargets(false);
+    }
+  };
+
+  const loadReceivedShares = async () => {
+    setIsLoadingReceivedShares(true);
+    try {
+      const data = await apiClient<{ shares: ReceivedShare[] }>(
+        "/conversations/shared/received",
+      );
+      setReceivedShares(data.shares);
+    } catch (error) {
+      console.error("Failed to load shared chats:", error);
+    } finally {
+      setIsLoadingReceivedShares(false);
+    }
+  };
+
+  const handleOpenShareConversation = async () => {
+    if (!selectedConversation) return;
+    setShowShareConversation(true);
+    setShareMessage(null);
+    await loadShareTargets();
+  };
+
+  const handleShareConversation = async (
+    targetUserId: string,
+    targetUsername: string,
+  ) => {
+    if (!selectedConversation) return;
+
+    setSharingToUserId(targetUserId);
+    setShareError(null);
+    try {
+      await apiClient(`/conversations/${selectedConversation.id}/share`, {
+        method: "POST",
+        body: JSON.stringify({ targetUserId }),
+      });
+      setShareMessage(`Shared with ${targetUsername}`);
+    } catch (error) {
+      setShareError(
+        error instanceof Error ? error.message : "Failed to share chat",
+      );
+    } finally {
+      setSharingToUserId(null);
+    }
+  };
+
+  const handleOpenSharedChats = async () => {
+    setShowSharedChats(true);
+    await loadReceivedShares();
+  };
+
+  const handleOpenSharedConversation = async (share: ReceivedShare) => {
+    try {
+      await apiClient(`/conversations/shared/${share.id}/open`, {
+        method: "PUT",
+      });
+    } catch (error) {
+      console.error("Failed to mark shared chat as opened:", error);
+    }
+
+    setReceivedShares((prev) =>
+      prev.map((item) =>
+        item.id === share.id
+          ? { ...item, isRead: true, openedAt: new Date().toISOString() }
+          : item,
+      ),
+    );
+
+    await refreshConversations();
+    selectConversation(share.conversationId);
+    if (isMobile) {
+      setShowMobileMenu(false);
+    }
+    setShowSharedChats(false);
+  };
+
+  const shareSheets = (
+    <>
+      <Sheet
+        open={showShareConversation}
+        onOpenChange={setShowShareConversation}
+      >
+        <SheetContent side="right" className="w-full max-w-md">
+          <SheetTitle>Share Conversation</SheetTitle>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {selectedConversation
+              ? `Share ${selectedConversation.title} with another user.`
+              : "Select a conversation first."}
+          </p>
+
+          <div className="mt-4 space-y-3">
+            {shareError && (
+              <div className="rounded bg-red-50 p-3 text-sm text-red-900">
+                {shareError}
+              </div>
+            )}
+            {shareMessage && (
+              <div className="rounded bg-green-50 p-3 text-sm text-green-900">
+                {shareMessage}
+              </div>
+            )}
+
+            {isLoadingShareTargets ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : shareTargets.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No users available.
+              </p>
+            ) : (
+              <div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
+                {shareTargets.map((target) => (
+                  <div
+                    key={target.id}
+                    className="flex items-center justify-between gap-3 rounded border p-3"
+                  >
+                    <span className="truncate text-sm font-medium">
+                      {target.username}
+                    </span>
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        handleShareConversation(target.id, target.username)
+                      }
+                      disabled={sharingToUserId === target.id}
+                    >
+                      {sharingToUserId === target.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Share"
+                      )}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={showSharedChats} onOpenChange={setShowSharedChats}>
+        <SheetContent side="right" className="w-full max-w-md">
+          <SheetTitle>Shared Chats</SheetTitle>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Open a shared chat to jump directly to that conversation.
+          </p>
+
+          <div className="mt-4">
+            {isLoadingReceivedShares ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : receivedShares.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No shared chats yet.
+              </p>
+            ) : (
+              <div className="max-h-[65vh] space-y-2 overflow-y-auto pr-1">
+                {receivedShares.map((share) => (
+                  <button
+                    key={share.id}
+                    onClick={() => handleOpenSharedConversation(share)}
+                    className="w-full rounded border p-3 text-left transition-colors hover:bg-accent"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="truncate text-sm font-medium">
+                        {share.conversationTitle}
+                      </p>
+                      {!share.isRead && (
+                        <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] text-primary-foreground">
+                          New
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Shared by {share.sharedBy}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {new Date(share.createdAt).toLocaleString()}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
+  );
 
   // Close mobile menu when a conversation is selected
   const handleSelectConversation = (id: string) => {
@@ -111,6 +341,24 @@ function AppContent() {
             <h1 className="text-xl font-bold">LinkedIn Message Viewer</h1>
           </div>
           <div className="flex items-center gap-2">
+            <div className="hidden sm:block text-right px-2">
+              <p className="text-xs text-muted-foreground">Signed in as</p>
+              <p className="text-sm font-medium">{user?.username}</p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleOpenSharedChats}
+              className="relative"
+              title="Shared Chats"
+            >
+              <Inbox className="h-5 w-5" />
+              {unreadSharedCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                  {unreadSharedCount > 9 ? "9+" : unreadSharedCount}
+                </span>
+              )}
+            </Button>
             {isAdmin && (
               <Button
                 variant="outline"
@@ -128,17 +376,6 @@ function AppContent() {
             >
               <KeyRound className="h-5 w-5" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setDarkMode(!darkMode)}
-            >
-              {darkMode ? (
-                <Sun className="h-5 w-5" />
-              ) : (
-                <Moon className="h-5 w-5" />
-              )}
-            </Button>
             <Button variant="ghost" size="sm" onClick={logout}>
               <LogOut className="h-4 w-4 mr-1" /> Logout
             </Button>
@@ -150,6 +387,7 @@ function AppContent() {
           isOpen={showChangePassword}
           onClose={() => setShowChangePassword(false)}
         />
+        {shareSheets}
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center">
             <MessageSquare className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
@@ -172,13 +410,26 @@ function AppContent() {
       {/* Header - Responsive */}
       <header className="flex items-center justify-between border-b border-border px-3 py-3 lg:px-6">
         <div className="flex items-center gap-2 lg:gap-3">
-          {/* Mobile menu button */}
-          {isMobile && (
+          {/* Mobile/tablet message panel button */}
+          {(isMobile || isTablet) && (
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setShowMobileMenu(true)}
+              onClick={() => {
+                if (isMobile) {
+                  setShowMobileMenu(true);
+                  return;
+                }
+                setShowTabletMessagePanel((prev) => !prev);
+              }}
               className="shrink-0"
+              title={
+                isMobile
+                  ? "Open conversations"
+                  : showTabletMessagePanel
+                    ? "Collapse messages panel"
+                    : "Expand messages panel"
+              }
             >
               <Menu className="h-5 w-5" />
             </Button>
@@ -200,6 +451,11 @@ function AppContent() {
           {/* Desktop search bar */}
           <div className="hidden md:block w-64 lg:w-80">
             <SearchBar />
+          </div>
+
+          <div className="hidden lg:block text-right">
+            <p className="text-xs text-muted-foreground">Signed in as</p>
+            <p className="text-sm font-medium">{user?.username}</p>
           </div>
 
           {/* Mobile search button */}
@@ -276,6 +532,39 @@ function AppContent() {
             <TooltipContent>Room Manager</TooltipContent>
           </Tooltip>
 
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleOpenShareConversation}
+                disabled={!selectedConversation}
+              >
+                <Share2 className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Share Chat</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleOpenSharedChats}
+                className="relative"
+              >
+                <Inbox className="h-5 w-5" />
+                {unreadSharedCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                    {unreadSharedCount > 9 ? "9+" : unreadSharedCount}
+                  </span>
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Shared Chats</TooltipContent>
+          </Tooltip>
+
           <Button
             variant={showBookmarks ? "secondary" : "ghost"}
             size="icon"
@@ -306,17 +595,6 @@ function AppContent() {
             title="Change Password"
           >
             <KeyRound className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setDarkMode(!darkMode)}
-          >
-            {darkMode ? (
-              <Sun className="h-5 w-5" />
-            ) : (
-              <Moon className="h-5 w-5" />
-            )}
           </Button>
           <Button
             variant="ghost"
@@ -358,6 +636,7 @@ function AppContent() {
         isOpen={showRoomManager}
         onClose={() => setShowRoomManager(false)}
       />
+      {shareSheets}
 
       {/* Mobile search bar (expandable) */}
       {isMobile && showMobileSearch && (
@@ -369,7 +648,7 @@ function AppContent() {
       {/* Main content area */}
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop sidebar */}
-        {!isMobile && (
+        {shouldShowMessagePanel && (
           <div className="w-80 shrink-0">
             <ConversationList />
           </div>

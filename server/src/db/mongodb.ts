@@ -24,6 +24,9 @@ export async function connectDB(): Promise<Db> {
     await db.collection('conversations').createIndex({ is_visible: 1, last_message_date: -1 })
     await db.collection('bookmarks').createIndex({ user_id: 1 })
     await db.collection('bookmarks').createIndex({ user_id: 1, message_id: 1 }, { unique: true })
+    await db.collection('shared_chats').createIndex({ to_user_id: 1, created_at: -1 })
+    await db.collection('shared_chats').createIndex({ from_user_id: 1, created_at: -1 })
+    await db.collection('shared_chats').createIndex({ conversation_id: 1 })
 
     // Read rooms indexes
     await db.collection('read_rooms').createIndex({ code: 1 }, { unique: true })
