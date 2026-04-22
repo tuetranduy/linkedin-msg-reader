@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { MessageProvider, useMessages } from "./context/MessageContext";
 import { RoomProvider, useRoom } from "./context/RoomContext";
@@ -72,7 +72,6 @@ function AppContent() {
   } = useMessages();
   const { currentRoom, isInRoom, isConnected } = useRoom();
   const [showBookmarks, setShowBookmarks] = useState(false);
-  const [showAdmin, setShowAdmin] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -92,11 +91,28 @@ function AppContent() {
   const [messageToShare, setMessageToShare] = useState<Message | null>(null);
   const isMobile = useIsMobile();
   const [showConversationPanel, setShowConversationPanel] = useState(true);
+  const [currentPath, setCurrentPath] = useState(() =>
+    typeof window !== "undefined" ? window.location.pathname : "/",
+  );
 
   const sharedMessageCount = receivedShares.filter(
     (share) => share.sharedType === "message",
   ).length;
   const shouldShowMessagePanel = !isMobile && showConversationPanel;
+  const isAdminRoute = currentPath === "/admin";
+
+  const navigateTo = useCallback((path: string, replace = false) => {
+    if (typeof window === "undefined") return;
+
+    if (window.location.pathname !== path) {
+      if (replace) {
+        window.history.replaceState({}, "", path);
+      } else {
+        window.history.pushState({}, "", path);
+      }
+    }
+    setCurrentPath(path);
+  }, []);
 
   const loadShareTargets = async () => {
     setIsLoadingShareTargets(true);
@@ -133,6 +149,29 @@ function AppContent() {
     void loadReceivedShares();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (currentPath !== "/" && currentPath !== "/admin") {
+      navigateTo("/", true);
+    }
+  }, [currentPath, navigateTo]);
+
+  useEffect(() => {
+    if (isAdminRoute && !isAdmin) {
+      navigateTo("/", true);
+    }
+  }, [isAdminRoute, isAdmin, navigateTo]);
 
   const handleOpenShareConversation = async () => {
     if (!selectedConversation) return;
@@ -359,8 +398,8 @@ function AppContent() {
     }
   };
 
-  if (showAdmin && isAdmin) {
-    return <AdminDashboard onBack={() => setShowAdmin(false)} />;
+  if (isAdminRoute && isAdmin) {
+    return <AdminDashboard onBack={() => navigateTo("/")} />;
   }
 
   if (isLoading) {
@@ -414,7 +453,7 @@ function AppContent() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowAdmin(true)}
+                onClick={() => navigateTo("/admin")}
               >
                 <Settings className="h-4 w-4 mr-1" /> Admin
               </Button>
@@ -446,7 +485,7 @@ function AppContent() {
               No conversations available
             </h2>
             {isAdmin && (
-              <Button className="mt-4" onClick={() => setShowAdmin(true)}>
+              <Button className="mt-4" onClick={() => navigateTo("/admin")}>
                 <Settings className="h-4 w-4 mr-2" /> Open Admin Dashboard
               </Button>
             )}
@@ -631,7 +670,7 @@ function AppContent() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => setShowAdmin(true)}
+              onClick={() => navigateTo("/admin")}
               title="Admin"
             >
               <Settings className="h-5 w-5" />
