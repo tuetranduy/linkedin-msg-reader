@@ -13,6 +13,7 @@ import {
   BookmarkCheck,
   ExternalLink,
   Image as ImageIcon,
+  Share2,
 } from "lucide-react";
 import { cn, formatMessageTime, isUrl, isImageUrl } from "@/lib/utils";
 
@@ -49,6 +50,7 @@ interface MessageBubbleProps {
   showAvatar?: boolean;
   isHighlighted?: boolean;
   participantIndex?: number;
+  onShareMessage?: (message: Message) => void;
 }
 
 export function MessageBubble({
@@ -56,6 +58,7 @@ export function MessageBubble({
   showAvatar = true,
   isHighlighted = false,
   participantIndex = 0,
+  onShareMessage,
 }: MessageBubbleProps) {
   const { isBookmarked, addBookmark, removeBookmark, searchQuery } =
     useMessages();
@@ -218,7 +221,7 @@ export function MessageBubble({
 
           <div
             className={cn(
-              "text-sm whitespace-pre-wrap break-words",
+              "text-sm whitespace-pre-wrap wrap-break-word",
               message.isCurrentUser &&
                 "[&_mark]:bg-primary-foreground/30 [&_mark]:text-primary-foreground",
             )}
@@ -276,7 +279,7 @@ export function MessageBubble({
                 size="icon"
                 className={cn(
                   "h-6 w-6 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100",
-                  bookmarked && "!opacity-100",
+                  bookmarked && "opacity-100!",
                 )}
                 onClick={toggleBookmark}
               >
@@ -290,6 +293,21 @@ export function MessageBubble({
             <TooltipContent>
               {bookmarked ? "Remove bookmark" : "Bookmark message"}
             </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
+                onClick={() => onShareMessage?.(message)}
+                disabled={!onShareMessage}
+              >
+                <Share2 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Share this message</TooltipContent>
           </Tooltip>
         </div>
       </div>

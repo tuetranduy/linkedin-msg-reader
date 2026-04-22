@@ -4,6 +4,7 @@ import { MessageProvider, useMessages } from "./context/MessageContext";
 import { RoomProvider, useRoom } from "./context/RoomContext";
 import { ConversationList } from "./components/ConversationList";
 import { MessageList } from "./components/MessageList";
+import type { Message } from "./types/message";
 import { SearchBar } from "./components/SearchBar";
 import { BookmarkPanel } from "./components/BookmarkPanel";
 import { RoomPanel } from "./components/RoomPanel";
@@ -49,6 +50,10 @@ interface ReceivedShare {
   id: string;
   conversationId: string;
   conversationTitle: string;
+  sharedType?: "conversation" | "message";
+  messageId?: string | null;
+  messageDate?: string | null;
+  messagePreview?: string | null;
   sharedBy: string;
   createdAt: string;
   openedAt: string | null;
@@ -64,6 +69,7 @@ function AppContent() {
     isLoading,
     selectConversation,
     refreshConversations,
+    goToBookmark,
   } = useMessages();
   const { currentRoom, isInRoom, isConnected } = useRoom();
   const [showBookmarks, setShowBookmarks] = useState(false);
@@ -84,6 +90,7 @@ function AppContent() {
   const [sharingToUserId, setSharingToUserId] = useState<string | null>(null);
   const [shareMessage, setShareMessage] = useState<string | null>(null);
   const [shareError, setShareError] = useState<string | null>(null);
+  const [messageToShare, setMessageToShare] = useState<Message | null>(null);
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
   const [showTabletMessagePanel, setShowTabletMessagePanel] = useState(true);
@@ -127,6 +134,14 @@ function AppContent() {
 
   const handleOpenShareConversation = async () => {
     if (!selectedConversation) return;
+    setMessageToShare(null);
+    setShowShareConversation(true);
+    setShareMessage(null);
+    await loadShareTargets();
+  };
+
+  const handleOpenShareMessage = async (message: Message) => {
+    setMessageToShare(message);
     setShowShareConversation(true);
     setShareMessage(null);
     await loadShareTargets();
@@ -143,9 +158,16 @@ function AppContent() {
     try {
       await apiClient(`/conversations/${selectedConversation.id}/share`, {
         method: "POST",
-        body: JSON.stringify({ targetUserId }),
+        body: JSON.stringify({
+          targetUserId,
+          messageId: messageToShare?.id,
+        }),
       });
-      setShareMessage(`Shared with ${targetUsername}`);
+      setShareMessage(
+        messageToShare
+          ? `Message shared with ${targetUsername}`
+          : `Conversation shared with ${targetUsername}`,
+      );
     } catch (error) {
       setShareError(
         error instanceof Error ? error.message : "Failed to share chat",
@@ -178,7 +200,18 @@ function AppContent() {
     );
 
     await refreshConversations();
-    selectConversation(share.conversationId);
+    if (share.messageId) {
+      goToBookmark({
+        messageId: share.messageId,
+        conversationId: share.conversationId,
+        content: share.messagePreview || "Shared message",
+        from: share.sharedBy,
+        date: new Date(share.messageDate || share.createdAt),
+        createdAt: new Date(share.createdAt),
+      });
+    } else {
+      selectConversation(share.conversationId);
+    }
     if (isMobile) {
       setShowMobileMenu(false);
     }
@@ -192,12 +225,24 @@ function AppContent() {
         onOpenChange={setShowShareConversation}
       >
         <SheetContent side="right" className="w-full max-w-md">
-          <SheetTitle>Share Conversation</SheetTitle>
+          <SheetTitle>
+            {messageToShare ? "Share Message" : "Share Conversation"}
+          </SheetTitle>
           <p className="mt-1 text-sm text-muted-foreground">
-            {selectedConversation
-              ? `Share ${selectedConversation.title} with another user.`
-              : "Select a conversation first."}
+            {messageToShare
+              ? `Share this message from ${selectedConversation?.title}.`
+              : selectedConversation
+                ? `Share ${selectedConversation.title} with another user.`
+                : "Select a conversation first."}
           </p>
+
+          {messageToShare && (
+            <div className="mt-3 rounded border bg-muted/30 p-3 text-sm text-muted-foreground">
+              <p className="line-clamp-3 wrap-break-word">
+                {messageToShare.content}
+              </p>
+            </div>
+          )}
 
           <div className="mt-4 space-y-3">
             {shareError && (
@@ -287,6 +332,11 @@ function AppContent() {
                     <p className="mt-1 text-xs text-muted-foreground">
                       Shared by {share.sharedBy}
                     </p>
+                    {share.messagePreview && (
+                      <p className="mt-1 line-clamp-2 wrap-break-word text-xs text-muted-foreground">
+                        {share.messagePreview}
+                      </p>
+                    )}
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {new Date(share.createdAt).toLocaleString()}
                     </p>
@@ -543,7 +593,7 @@ function AppContent() {
                 <Share2 className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Share Chat</TooltipContent>
+            <TooltipContent>Share Conversation</TooltipContent>
           </Tooltip>
 
           <Tooltip>
@@ -689,7 +739,7 @@ function AppContent() {
               </div>
             </div>
           )}
-          <MessageList />
+          <MessageList onShareMessage={handleOpenShareMessage} />
         </div>
 
         {/* Bookmark panel - Desktop sidebar or Mobile sheet */}

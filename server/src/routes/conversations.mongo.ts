@@ -114,6 +114,10 @@ router.get('/shared/received', async (req: AuthRequest, res: Response): Promise<
                 id: s._id.toString(),
                 conversationId: s.conversation_id,
                 conversationTitle: conversationMap.get(s.conversation_id),
+                sharedType: s.shared_type || 'conversation',
+                messageId: s.message_id || null,
+                messageDate: s.message_date || null,
+                messagePreview: s.message_preview || null,
                 sharedBy: senderMap.get(s.from_user_id) || 'Unknown',
                 createdAt: s.created_at,
                 openedAt: s.opened_at || null,
@@ -151,7 +155,7 @@ router.put('/shared/:shareId/open', async (req: AuthRequest, res: Response): Pro
 
 router.post('/:id/share', async (req: AuthRequest, res: Response): Promise<void> => {
     const id = toParamString(req.params.id)
-    const { targetUserId } = req.body
+    const { targetUserId, messageId } = req.body
 
     if (!targetUserId || typeof targetUserId !== 'string') {
         res.status(400).json({ error: 'Target user is required' })
@@ -196,10 +200,34 @@ router.post('/:id/share', async (req: AuthRequest, res: Response): Promise<void>
         return
     }
 
+    let sharedType: 'conversation' | 'message' = 'conversation'
+    let messageDate: Date | null = null
+    let messagePreview: string | null = null
+
+    if (messageId && typeof messageId === 'string') {
+        const message = await db.collection('messages').findOne(
+            { _id: messageId as unknown as ObjectId, conversation_id: id },
+            { projection: { _id: 1, date: 1, content: 1 } }
+        )
+
+        if (!message) {
+            res.status(404).json({ error: 'Message not found in this conversation' })
+            return
+        }
+
+        sharedType = 'message'
+        messageDate = message.date ? new Date(message.date) : null
+        messagePreview = (message.content || '').slice(0, 200)
+    }
+
     await db.collection('shared_chats').insertOne({
         conversation_id: id,
         from_user_id: req.user?.id,
         to_user_id: targetUserId,
+        shared_type: sharedType,
+        message_id: messageId && typeof messageId === 'string' ? messageId : null,
+        message_date: messageDate,
+        message_preview: messagePreview,
         created_at: new Date(),
         opened_at: null
     })

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { formatDateSeparator, isSameDay } from "@/lib/utils";
 import type { RoomScrollSyncEvent } from "@/types/room";
+import type { Message } from "@/types/message";
 
 interface MessageItem {
   type: "message" | "date-separator";
@@ -20,7 +21,11 @@ interface MessageItem {
   messageIndex?: number;
 }
 
-export function MessageList() {
+interface MessageListProps {
+  onShareMessage?: (message: Message) => void;
+}
+
+export function MessageList({ onShareMessage }: MessageListProps) {
   const {
     selectedConversation,
     highlightedMessageId,
@@ -389,6 +394,7 @@ export function MessageList() {
                   showAvatar={showAvatar}
                   isHighlighted={message.id === highlightedMessageId}
                   participantIndex={participantIndex}
+                  onShareMessage={onShareMessage}
                 />
               </div>
             );
