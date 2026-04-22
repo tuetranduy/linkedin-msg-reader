@@ -38,6 +38,7 @@ export function MessageList({ onShareMessage }: MessageListProps) {
     isLoadingMore,
     isLoadingConversation,
     isNavigatingToMessage,
+    navigationProgress,
     loadingProgress,
     totalMessageCount,
     goToDate,
@@ -54,6 +55,8 @@ export function MessageList({ onShareMessage }: MessageListProps) {
   const [dateInput, setDateInput] = React.useState("");
   const [dateError, setDateError] = React.useState<string | null>(null);
   const [isGoingToDate, setIsGoingToDate] = React.useState(false);
+  const [pendingDateNavigation, setPendingDateNavigation] =
+    React.useState(false);
   const isReceivingSyncRef = useRef(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -251,14 +254,22 @@ export function MessageList({ onShareMessage }: MessageListProps) {
     try {
       const found = await goToDate(new Date(`${dateInput}T00:00:00`));
       if (!found) {
+        setPendingDateNavigation(false);
         setDateError("No messages found on this date.");
         return;
       }
-      setShowDatePicker(false);
+      setPendingDateNavigation(true);
     } finally {
       setIsGoingToDate(false);
     }
   };
+
+  useEffect(() => {
+    if (pendingDateNavigation && !isNavigatingToMessage) {
+      setShowDatePicker(false);
+      setPendingDateNavigation(false);
+    }
+  }, [pendingDateNavigation, isNavigatingToMessage]);
 
   // Listen for scroll sync events from room
   useEffect(() => {
@@ -329,18 +340,30 @@ export function MessageList({ onShareMessage }: MessageListProps) {
 
   // Scroll to bottom on conversation change
   useEffect(() => {
-    if (selectedConversation && !highlightedMessageId && items.length > 0) {
+    if (
+      selectedConversation &&
+      !highlightedMessageId &&
+      items.length > 0 &&
+      !isNavigatingToMessage
+    ) {
       // Small delay to allow virtualizer to initialize
       setTimeout(() => {
         virtualizer.scrollToIndex(items.length - 1, { align: "end" });
       }, 100);
     }
-  }, [selectedConversation?.id]);
+  }, [
+    selectedConversation?.id,
+    highlightedMessageId,
+    items.length,
+    isNavigatingToMessage,
+    virtualizer,
+  ]);
 
   useEffect(() => {
     setShowDatePicker(false);
     setDateInput("");
     setDateError(null);
+    setPendingDateNavigation(false);
   }, [selectedConversation?.id]);
 
   if (isLoadingConversation) {
@@ -513,6 +536,11 @@ export function MessageList({ onShareMessage }: MessageListProps) {
               </Button>
             </div>
             {dateError && <p className="text-xs text-red-600">{dateError}</p>}
+            {isNavigatingToMessage && (
+              <p className="text-xs text-muted-foreground">
+                Loading target date... {Math.max(navigationProgress, 1)}%
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -535,6 +563,23 @@ export function MessageList({ onShareMessage }: MessageListProps) {
               />
             </div>
           )}
+        </div>
+      )}
+
+      {isNavigatingToMessage && (
+        <div className="absolute top-20 left-1/2 z-20 flex min-w-[220px] -translate-x-1/2 flex-col items-center gap-1.5 rounded-lg bg-background/90 px-4 py-2 shadow-lg backdrop-blur-sm">
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-xs text-muted-foreground">
+              Loading target message... {Math.max(navigationProgress, 1)}%
+            </span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full bg-primary transition-all duration-300 ease-out"
+              style={{ width: `${Math.max(navigationProgress, 1)}%` }}
+            />
+          </div>
         </div>
       )}
 

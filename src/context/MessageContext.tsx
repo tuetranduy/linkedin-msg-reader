@@ -41,6 +41,7 @@ interface MessageContextType {
   setHighlightedMessageId: (id: string | null) => void;
   isSearching: boolean;
   isNavigatingToMessage: boolean;
+  navigationProgress: number;
 
   // Bookmarks
   bookmarks: Bookmark[];
@@ -117,6 +118,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
   >(null);
   const [isSearching, setIsSearching] = useState(false);
   const [isNavigatingToMessage, setIsNavigatingToMessage] = useState(false);
+  const [navigationProgress, setNavigationProgress] = useState(0);
   const [pendingMessageNavigation, setPendingMessageNavigation] = useState<{
     conversationId: string;
     messageId: string;
@@ -238,6 +240,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
 
     if (messageExists) {
       // Message found, highlight it
+      setNavigationProgress(100);
       setHighlightedMessageId(targetMessageId);
       setPendingMessageNavigation(null);
       setIsNavigatingToMessage(false);
@@ -248,9 +251,11 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
     // Load messages around the target date
     const loadMessagesUntilFound = async () => {
       setIsNavigatingToMessage(true);
+      setNavigationProgress(0);
       let found = false;
       let currentMessages = [...selectedConversation.messages];
-      let hasMore = true;
+      let hasMore = hasMoreMessages;
+      const total = Math.max(totalMessageCount, currentMessages.length, 1);
 
       while (!found && hasMore) {
         const oldestMessage = currentMessages[0];
@@ -267,7 +272,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
             messages: ApiMessage[];
             hasMore: boolean;
           }>(
-            `/conversations/${selectedConversation.id}?limit=500&before=${oldestMessage.date.toISOString()}`,
+            `/conversations/${selectedConversation.id}?limit=2000&before=${oldestMessage.date.toISOString()}`,
           );
 
           const olderMessages: Message[] = data.messages.map((m) => ({
@@ -281,28 +286,41 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
             attachments: [],
           }));
 
+          if (olderMessages.length === 0) {
+            hasMore = false;
+            break;
+          }
+
           currentMessages = [...olderMessages, ...currentMessages];
           hasMore = data.hasMore;
 
           // Check if target message is now in our loaded messages
           found = olderMessages.some((m) => m.id === targetMessageId);
 
-          // Update conversation with new messages
-          setSelectedConversation((prev) => {
-            if (!prev) return prev;
-            return {
-              ...prev,
-              messages: currentMessages,
-            };
-          });
-          setHasMoreMessages(data.hasMore);
+          const progress = Math.min(
+            Math.round((currentMessages.length / total) * 100),
+            found || !hasMore ? 100 : 99,
+          );
+          setNavigationProgress(progress);
         } catch (e) {
           console.error("Failed to load messages:", e);
           break;
         }
       }
 
+      if (currentMessages.length > selectedConversation.messages.length) {
+        setSelectedConversation((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            messages: currentMessages,
+          };
+        });
+      }
+      setHasMoreMessages(hasMore);
+
       if (found) {
+        setNavigationProgress(100);
         setHighlightedMessageId(targetMessageId);
       }
       setPendingMessageNavigation(null);
@@ -310,7 +328,13 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
     };
 
     loadMessagesUntilFound();
-  }, [pendingMessageNavigation, selectedConversation, isLoadingConversation]);
+  }, [
+    pendingMessageNavigation,
+    selectedConversation,
+    isLoadingConversation,
+    hasMoreMessages,
+    totalMessageCount,
+  ]);
 
   // Load more messages (older messages)
   const loadMoreMessages = useCallback(async () => {
@@ -605,6 +629,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
       const endOfDay = new Date(startOfDay);
       endOfDay.setDate(endOfDay.getDate() + 1);
 
+      setNavigationProgress(0);
       setIsNavigatingToMessage(true);
 
       try {
@@ -616,12 +641,14 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
 
         const targetMessage = data.messages[0];
         if (!targetMessage) {
+          setNavigationProgress(0);
           setIsNavigatingToMessage(false);
           return false;
         }
 
         const targetDate = new Date(targetMessage.date);
         if (targetDate < startOfDay) {
+          setNavigationProgress(0);
           setIsNavigatingToMessage(false);
           return false;
         }
@@ -635,6 +662,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
         return true;
       } catch (e) {
         console.error("Failed to navigate to date:", e);
+        setNavigationProgress(0);
         setIsNavigatingToMessage(false);
         return false;
       }
@@ -669,6 +697,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
         setHighlightedMessageId,
         isSearching,
         isNavigatingToMessage,
+        navigationProgress,
         bookmarks,
         addBookmark,
         removeBookmark,

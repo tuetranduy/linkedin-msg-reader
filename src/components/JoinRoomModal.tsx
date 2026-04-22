@@ -10,7 +10,6 @@ import {
   SheetDescription,
   SheetFooter,
 } from "@/components/ui/sheet";
-import { useIsMobile } from "@/hooks/useMediaQuery";
 import { Users, Loader2, AlertCircle } from "lucide-react";
 
 interface JoinRoomModalProps {
@@ -24,7 +23,6 @@ export function JoinRoomModal({
   onClose,
   onJoined,
 }: JoinRoomModalProps) {
-  const isMobile = useIsMobile();
   const { joinRoom } = useRoom();
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -62,12 +60,7 @@ export function JoinRoomModal({
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent
-        side={isMobile ? "bottom" : "center"}
-        className={
-          isMobile ? "sm:max-w-md sm:mx-auto sm:rounded-t-xl" : "max-w-md"
-        }
-      >
+      <SheetContent side="center" className="max-w-md overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" />

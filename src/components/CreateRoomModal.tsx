@@ -72,10 +72,7 @@ export function CreateRoomModal({
 
   return (
     <Sheet open={isOpen} onOpenChange={handleClose}>
-      <SheetContent
-        side="bottom"
-        className="sm:max-w-md sm:mx-auto sm:rounded-t-xl"
-      >
+      <SheetContent side="center" className="max-w-md overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" />
