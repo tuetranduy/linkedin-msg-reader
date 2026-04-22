@@ -23,7 +23,7 @@ import {
   TooltipContent,
 } from "./components/ui/tooltip";
 import { Sheet, SheetContent, SheetTitle } from "./components/ui/sheet";
-import { useIsMobile, useIsTablet } from "./hooks/useMediaQuery";
+import { useIsMobile } from "./hooks/useMediaQuery";
 import {
   Bookmark,
   MessageSquare,
@@ -92,14 +92,12 @@ function AppContent() {
   const [shareError, setShareError] = useState<string | null>(null);
   const [messageToShare, setMessageToShare] = useState<Message | null>(null);
   const isMobile = useIsMobile();
-  const isTablet = useIsTablet();
-  const [showTabletMessagePanel, setShowTabletMessagePanel] = useState(true);
+  const [showConversationPanel, setShowConversationPanel] = useState(true);
 
   const unreadSharedCount = receivedShares.filter(
     (share) => !share.isRead,
   ).length;
-  const shouldShowMessagePanel =
-    !isMobile && (!isTablet || showTabletMessagePanel);
+  const shouldShowMessagePanel = !isMobile && showConversationPanel;
 
   const loadShareTargets = async () => {
     setIsLoadingShareTargets(true);
@@ -460,30 +458,28 @@ function AppContent() {
       {/* Header - Responsive */}
       <header className="flex items-center justify-between border-b border-border px-3 py-3 lg:px-6">
         <div className="flex items-center gap-2 lg:gap-3">
-          {/* Mobile/tablet message panel button */}
-          {(isMobile || isTablet) && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                if (isMobile) {
-                  setShowMobileMenu(true);
-                  return;
-                }
-                setShowTabletMessagePanel((prev) => !prev);
-              }}
-              className="shrink-0"
-              title={
-                isMobile
-                  ? "Open conversations"
-                  : showTabletMessagePanel
-                    ? "Collapse messages panel"
-                    : "Expand messages panel"
+          {/* Conversation panel toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              if (isMobile) {
+                setShowMobileMenu(true);
+                return;
               }
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-          )}
+              setShowConversationPanel((prev) => !prev);
+            }}
+            className="shrink-0"
+            title={
+              isMobile
+                ? "Open conversations"
+                : showConversationPanel
+                  ? "Collapse messages panel"
+                  : "Expand messages panel"
+            }
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
           <div className="rounded-lg bg-primary p-1.5 lg:p-2">
             <MessageSquare className="h-4 w-4 lg:h-5 lg:w-5 text-primary-foreground" />
           </div>

@@ -48,6 +48,7 @@ interface MessageContextType {
   removeBookmark: (messageId: string) => void;
   isBookmarked: (messageId: string) => boolean;
   goToBookmark: (bookmark: Bookmark) => void;
+  goToDate: (date: Date) => Promise<boolean>;
   refreshBookmarks: () => Promise<void>;
 }
 
@@ -592,6 +593,55 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
     setSelectedConversationId(bookmark.conversationId);
   }, []);
 
+  const goToDate = useCallback(
+    async (date: Date): Promise<boolean> => {
+      if (!selectedConversationId) {
+        return false;
+      }
+
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date(startOfDay);
+      endOfDay.setDate(endOfDay.getDate() + 1);
+
+      setIsNavigatingToMessage(true);
+
+      try {
+        const data = await apiClient<{
+          messages: ApiMessage[];
+        }>(
+          `/conversations/${selectedConversationId}?limit=1&before=${endOfDay.toISOString()}`,
+        );
+
+        const targetMessage = data.messages[0];
+        if (!targetMessage) {
+          setIsNavigatingToMessage(false);
+          return false;
+        }
+
+        const targetDate = new Date(targetMessage.date);
+        if (targetDate < startOfDay) {
+          setIsNavigatingToMessage(false);
+          return false;
+        }
+
+        setPendingMessageNavigation({
+          conversationId: selectedConversationId,
+          messageId: targetMessage.id,
+          messageDate: targetDate,
+        });
+
+        return true;
+      } catch (e) {
+        console.error("Failed to navigate to date:", e);
+        setIsNavigatingToMessage(false);
+        return false;
+      }
+    },
+    [selectedConversationId],
+  );
+
   return (
     <MessageContext.Provider
       value={{
@@ -624,6 +674,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
         removeBookmark,
         isBookmarked,
         goToBookmark,
+        goToDate,
         refreshBookmarks,
       }}
     >

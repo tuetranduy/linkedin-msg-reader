@@ -11,6 +11,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/useMediaQuery";
 import {
   AlertCircle,
   Calendar,
@@ -29,6 +30,7 @@ interface RoomManagerModalProps {
 }
 
 export function RoomManagerModal({ isOpen, onClose }: RoomManagerModalProps) {
+  const isMobile = useIsMobile();
   const { currentRoom, isConnected, endRoom } = useRoom();
   const [rooms, setRooms] = useState<AvailableRoom[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -161,8 +163,12 @@ export function RoomManagerModal({ isOpen, onClose }: RoomManagerModalProps) {
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent
-        side="bottom"
-        className="sm:max-w-3xl sm:mx-auto sm:rounded-t-xl max-h-[90vh]"
+        side={isMobile ? "bottom" : "center"}
+        className={
+          isMobile
+            ? "sm:max-w-3xl sm:mx-auto sm:rounded-t-xl max-h-[90vh]"
+            : "max-w-3xl"
+        }
       >
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">

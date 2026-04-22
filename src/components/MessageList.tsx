@@ -4,7 +4,9 @@ import { useMessages } from "@/context/MessageContext";
 import { useRoom } from "@/context/RoomContext";
 import { MessageBubble } from "./MessageBubble";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
+  CalendarDays,
   ChevronDown,
   ChevronUp,
   ChevronsUp,
@@ -35,8 +37,10 @@ export function MessageList({ onShareMessage }: MessageListProps) {
     hasMoreMessages,
     isLoadingMore,
     isLoadingConversation,
+    isNavigatingToMessage,
     loadingProgress,
     totalMessageCount,
+    goToDate,
   } = useMessages();
   const { currentRoom, isInRoom, emitScroll, onScrollSync, offScrollSync } =
     useRoom();
@@ -46,6 +50,10 @@ export function MessageList({ onShareMessage }: MessageListProps) {
   const [syncController, setSyncController] = React.useState<string | null>(
     null,
   );
+  const [showDatePicker, setShowDatePicker] = React.useState(false);
+  const [dateInput, setDateInput] = React.useState("");
+  const [dateError, setDateError] = React.useState<string | null>(null);
+  const [isGoingToDate, setIsGoingToDate] = React.useState(false);
   const isReceivingSyncRef = useRef(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -232,6 +240,26 @@ export function MessageList({ onShareMessage }: MessageListProps) {
     }, 100);
   };
 
+  const handleGoToDate = async () => {
+    if (!dateInput) {
+      setDateError("Please choose a date.");
+      return;
+    }
+
+    setDateError(null);
+    setIsGoingToDate(true);
+    try {
+      const found = await goToDate(new Date(`${dateInput}T00:00:00`));
+      if (!found) {
+        setDateError("No messages found on this date.");
+        return;
+      }
+      setShowDatePicker(false);
+    } finally {
+      setIsGoingToDate(false);
+    }
+  };
+
   // Listen for scroll sync events from room
   useEffect(() => {
     if (!isInRoom) {
@@ -307,6 +335,12 @@ export function MessageList({ onShareMessage }: MessageListProps) {
         virtualizer.scrollToIndex(items.length - 1, { align: "end" });
       }, 100);
     }
+  }, [selectedConversation?.id]);
+
+  useEffect(() => {
+    setShowDatePicker(false);
+    setDateInput("");
+    setDateError(null);
   }, [selectedConversation?.id]);
 
   if (isLoadingConversation) {
@@ -413,28 +447,74 @@ export function MessageList({ onShareMessage }: MessageListProps) {
         </Button>
       )}
 
-      {showScrollTopButton && (
-        <Button
-          variant="secondary"
-          size="icon"
-          className="absolute top-4 right-4 rounded-full shadow-lg"
-          onClick={scrollToTop}
-        >
-          <ChevronUp className="h-5 w-5" />
-        </Button>
-      )}
+      <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
+        {hasMoreMessages && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="rounded-full px-3 shadow-lg"
+            onClick={goToBeginning}
+            disabled={isLoadingMore || isGoingToDate || isNavigatingToMessage}
+          >
+            <ChevronsUp className="mr-1 h-4 w-4" />
+            Beginning
+          </Button>
+        )}
 
-      {hasMoreMessages && (
         <Button
-          variant="secondary"
+          variant={showDatePicker ? "secondary" : "outline"}
           size="sm"
-          className="absolute top-4 right-16 rounded-full shadow-lg px-3"
-          onClick={goToBeginning}
-          disabled={isLoadingMore}
+          className="rounded-full px-3 shadow-lg"
+          onClick={() => {
+            setDateError(null);
+            setShowDatePicker((prev) => !prev);
+          }}
+          disabled={isGoingToDate || isNavigatingToMessage}
         >
-          <ChevronsUp className="h-4 w-4 mr-1" />
-          Beginning
+          <CalendarDays className="mr-1 h-4 w-4" />
+          <span className="hidden sm:inline">Go to date</span>
         </Button>
+
+        {showScrollTopButton && (
+          <Button
+            variant="secondary"
+            size="icon"
+            className="rounded-full shadow-lg"
+            onClick={scrollToTop}
+          >
+            <ChevronUp className="h-5 w-5" />
+          </Button>
+        )}
+      </div>
+
+      {showDatePicker && (
+        <div className="absolute right-4 top-16 z-20 w-[min(22rem,calc(100%-2rem))] rounded-lg border border-border bg-background/95 p-3 shadow-lg backdrop-blur-sm">
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">
+              Jump to messages on date
+            </label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="date"
+                value={dateInput}
+                onChange={(event) => setDateInput(event.target.value)}
+                max={new Date().toISOString().split("T")[0]}
+              />
+              <Button
+                size="sm"
+                onClick={handleGoToDate}
+                disabled={!dateInput || isGoingToDate || isNavigatingToMessage}
+              >
+                {isGoingToDate ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Go"
+                )}
+              </Button>
+            </div>
+            {dateError && <p className="text-xs text-red-600">{dateError}</p>}
+          </div>
+        </div>
       )}
 
       {isLoadingMore && (
@@ -466,19 +546,19 @@ export function MessageList({ onShareMessage }: MessageListProps) {
 
       {/* Room sync indicator */}
       {isInRoom && (
-        <div className="absolute bottom-4 left-4 flex items-center gap-2 bg-background/90 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg border border-border">
+        <div className="absolute bottom-16 left-2 right-2 z-20 flex max-w-[calc(100%-1rem)] items-center gap-2 rounded-lg border border-border bg-background/90 px-3 py-2 shadow-lg backdrop-blur-sm sm:bottom-4 sm:left-4 sm:right-auto sm:max-w-xs">
           <Users className="h-4 w-4 text-primary" />
-          <span className="text-xs">
+          <span className="min-w-0 text-xs">
             {currentRoom?.canControl ? (
               <span className="text-green-600 dark:text-green-400">
                 You control scroll
               </span>
             ) : syncController ? (
-              <span className="text-muted-foreground">
+              <span className="block truncate text-muted-foreground">
                 {syncController} is scrolling...
               </span>
             ) : (
-              <span className="text-muted-foreground">
+              <span className="block truncate text-muted-foreground">
                 Following room scroll
               </span>
             )}

@@ -58,7 +58,7 @@ router.get('/share/users', async (req: AuthRequest, res: Response): Promise<void
     const db = getDB()
     const users = await db.collection('users')
         .find(
-            { username: { $ne: req.user?.username } },
+            { username: { $ne: req.user?.username }, role: { $ne: 'admin' } },
             { projection: { _id: 1, username: 1 } }
         )
         .sort({ username: 1 })
