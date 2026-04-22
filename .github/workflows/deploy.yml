@@ -32,6 +32,7 @@ jobs:
             # Pull latest changes
             git fetch origin main
             git reset --hard origin/main
+            echo "Deploying commit: $(git rev-parse --short HEAD)"
 
             # Always refresh .env from secrets to avoid stale values on VPS
             cat > .env << 'EOF'
@@ -56,13 +57,26 @@ jobs:
             # Build and deploy with docker compose
             docker compose -f docker-compose.prod.yml config
             docker compose -f docker-compose.prod.yml build --no-cache
-            docker compose -f docker-compose.prod.yml up -d
+            docker compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
 
             # Clean up old images
             docker image prune -f
 
             # Show status
             docker compose -f docker-compose.prod.yml ps
+            docker inspect -f '{{.Name}} -> {{.Image}}' linkedin-msg-frontend linkedin-msg-backend
+
+            # Verify frontend cache headers after deploy
+            echo "Frontend / headers:"
+            curl -sI http://127.0.0.1:3002/ | grep -Ei 'HTTP/|Cache-Control|ETag|Last-Modified' || true
+
+            FIRST_ASSET=$(docker exec linkedin-msg-frontend sh -lc "ls /usr/share/nginx/html/assets/*.js 2>/dev/null | head -n 1 | xargs -n 1 basename")
+            if [ -n "$FIRST_ASSET" ]; then
+              echo "Frontend /assets/$FIRST_ASSET headers:"
+              curl -sI "http://127.0.0.1:3002/assets/$FIRST_ASSET" | grep -Ei 'HTTP/|Cache-Control|ETag|Last-Modified' || true
+            fi
+
+            docker compose -f docker-compose.prod.yml logs --tail=120 frontend
             docker compose -f docker-compose.prod.yml logs --tail=200 backend
 
   setup:
