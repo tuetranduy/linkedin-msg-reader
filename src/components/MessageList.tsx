@@ -282,9 +282,6 @@ export function MessageList({ onShareMessage }: MessageListProps) {
     const handleScrollSync = (event: RoomScrollSyncEvent) => {
       if (!selectedConversation || !event.messageId) return;
 
-      // Don't sync if we have control
-      if (currentRoom?.canControl) return;
-
       // Set flag to prevent emitting while receiving
       isReceivingSyncRef.current = true;
       setSyncController(event.from.username);
