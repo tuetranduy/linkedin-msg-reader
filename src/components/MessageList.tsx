@@ -605,14 +605,12 @@ export function MessageList({ onShareMessage }: MessageListProps) {
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="end">
                 <Calendar
-                  mode="single"
                   selected={selectedDate}
                   onSelect={(date) => {
                     setSelectedDate(date);
                     setDateError(null);
                   }}
                   disabled={(date) => date > new Date()}
-                  initialFocus
                 />
               </PopoverContent>
               <Button

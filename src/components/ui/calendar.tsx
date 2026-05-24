@@ -1,67 +1,118 @@
 import * as React from "react";
-import { DayPicker } from "react-day-picker";
-
+import {
+  addMonths,
+  subMonths,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  eachDayOfInterval,
+  isSameMonth,
+  isSameDay,
+  format,
+} from "date-fns";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>;
+interface CalendarProps {
+  selected?: Date;
+  onSelect?: (date: Date | undefined) => void;
+  disabled?: (date: Date) => boolean;
+  className?: string;
+}
 
-function Calendar({
-  className,
-  classNames,
-  showOutsideDays = true,
-  ...props
-}: CalendarProps) {
+const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+function Calendar({ selected, onSelect, disabled, className }: CalendarProps) {
+  const [viewMonth, setViewMonth] = React.useState<Date>(
+    selected ?? new Date(),
+  );
+
+  const days = React.useMemo(() => {
+    const start = startOfWeek(startOfMonth(viewMonth));
+    const end = endOfWeek(endOfMonth(viewMonth));
+    return eachDayOfInterval({ start, end });
+  }, [viewMonth]);
+
   return (
-    <DayPicker
-      showOutsideDays={showOutsideDays}
-      className={cn("p-3", className)}
-      classNames={{
-        months: "flex flex-col sm:flex-row gap-2",
-        month: "flex flex-col gap-4",
-        caption: "flex justify-center pt-1 relative items-center w-full",
-        caption_label: "text-sm font-medium",
-        nav: "flex items-center gap-1",
-        nav_button: cn(
-          buttonVariants({ variant: "outline" }),
-          "size-7 bg-transparent p-0 opacity-50 hover:opacity-100",
-        ),
-        nav_button_previous: "absolute left-1",
-        nav_button_next: "absolute right-1",
-        table: "w-full border-collapse space-x-1",
-        head_row: "flex",
-        head_cell:
-          "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem]",
-        row: "flex w-full mt-2",
-        cell: cn(
-          "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected].day-range-end)]:rounded-r-md",
-          props.mode === "range"
-            ? "[&:has(>.day-range-end)]:rounded-r-md [&:has(>.day-range-start)]:rounded-l-md first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md"
-            : "[&:has([aria-selected])]:rounded-md",
-        ),
-        day: cn(
-          buttonVariants({ variant: "ghost" }),
-          "size-8 p-0 font-normal aria-selected:opacity-100",
-        ),
-        day_range_start:
-          "day-range-start aria-selected:bg-primary aria-selected:text-primary-foreground",
-        day_range_end:
-          "day-range-end aria-selected:bg-primary aria-selected:text-primary-foreground",
-        day_selected:
-          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        day_today: "bg-accent text-accent-foreground",
-        day_outside:
-          "day-outside text-muted-foreground aria-selected:bg-accent/50 aria-selected:text-muted-foreground",
-        day_disabled: "text-muted-foreground opacity-50",
-        day_range_middle:
-          "aria-selected:bg-accent aria-selected:text-accent-foreground",
-        day_hidden: "invisible",
-        ...classNames,
-      }}
-      {...props}
-    />
+    <div className={cn("p-3 select-none", className)}>
+      {/* Month navigation */}
+      <div className="flex items-center justify-between mb-3">
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-7 w-7"
+          onClick={() => setViewMonth((m) => subMonths(m, 1))}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="text-sm font-medium">
+          {format(viewMonth, "MMMM yyyy")}
+        </span>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-7 w-7"
+          onClick={() => setViewMonth((m) => addMonths(m, 1))}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Weekday headers */}
+      <div className="grid grid-cols-7 mb-1">
+        {WEEKDAYS.map((d) => (
+          <div
+            key={d}
+            className="text-center text-[0.8rem] text-muted-foreground font-normal py-1"
+          >
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {/* Day grid */}
+      <div className="grid grid-cols-7">
+        {days.map((day) => {
+          const isCurrentMonth = isSameMonth(day, viewMonth);
+          const isSelected = selected ? isSameDay(day, selected) : false;
+          const isDisabled = disabled ? disabled(day) : false;
+          const isToday = isSameDay(day, new Date());
+
+          return (
+            <button
+              key={day.toISOString()}
+              type="button"
+              disabled={isDisabled || !isCurrentMonth}
+              onClick={() => {
+                if (!isDisabled && isCurrentMonth) {
+                  onSelect?.(isSelected ? undefined : day);
+                }
+              }}
+              className={cn(
+                "h-8 w-8 mx-auto flex items-center justify-center rounded-md text-sm transition-colors",
+                !isCurrentMonth && "invisible",
+                isCurrentMonth &&
+                  !isSelected &&
+                  !isDisabled &&
+                  "hover:bg-accent hover:text-accent-foreground",
+                isToday && !isSelected && "bg-accent text-accent-foreground",
+                isSelected &&
+                  "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+                isDisabled && "text-muted-foreground opacity-50 cursor-not-allowed",
+              )}
+            >
+              {format(day, "d")}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
+
 Calendar.displayName = "Calendar";
 
 export { Calendar };
+export type { CalendarProps };
