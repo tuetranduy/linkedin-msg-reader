@@ -22,6 +22,14 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "./components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTitle } from "./components/ui/sheet";
 import { useIsMobile } from "./hooks/useMediaQuery";
 import {
@@ -39,6 +47,7 @@ import {
   LayoutList,
   Share2,
   Inbox,
+  MoreVertical,
 } from "lucide-react";
 
 interface ShareTargetUser {
@@ -557,102 +566,105 @@ function AppContent() {
             </Button>
           )}
 
-          {/* Room buttons */}
-          {isInRoom ? (
+          {/* Desktop-only: Room buttons */}
+          <div className="hidden md:flex items-center gap-2">
+            {isInRoom ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    onClick={() => setShowRoomPanel(!showRoomPanel)}
+                    className="relative"
+                  >
+                    <Users className="h-5 w-5" />
+                    <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-green-500 text-[10px] text-white">
+                      {currentRoom?.participants.filter((p) => p.isOnline)
+                        .length || 0}
+                    </span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Room: {currentRoom?.code}</TooltipContent>
+              </Tooltip>
+            ) : (
+              <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowCreateRoom(true)}
+                      disabled={!selectedConversation}
+                    >
+                      <Users className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Read Together</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowJoinRoom(true)}
+                      disabled={!isConnected}
+                    >
+                      <UserPlus className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Join Room</TooltipContent>
+                </Tooltip>
+              </>
+            )}
+
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant="secondary"
+                  variant="ghost"
                   size="icon"
-                  onClick={() => setShowRoomPanel(!showRoomPanel)}
-                  className="relative"
+                  onClick={() => setShowRoomManager(true)}
                 >
-                  <Users className="h-5 w-5" />
-                  <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-green-500 text-[10px] text-white">
-                    {currentRoom?.participants.filter((p) => p.isOnline)
-                      .length || 0}
-                  </span>
+                  <LayoutList className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Room: {currentRoom?.code}</TooltipContent>
+              <TooltipContent>Room Manager</TooltipContent>
             </Tooltip>
-          ) : (
-            <>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowCreateRoom(true)}
-                    disabled={!selectedConversation}
-                  >
-                    <Users className="h-5 w-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Read Together</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowJoinRoom(true)}
-                    disabled={!isConnected}
-                  >
-                    <UserPlus className="h-5 w-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Join Room</TooltipContent>
-              </Tooltip>
-            </>
-          )}
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowRoomManager(true)}
-              >
-                <LayoutList className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Room Manager</TooltipContent>
-          </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleOpenShareConversation}
+                  disabled={!selectedConversation}
+                >
+                  <Share2 className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Share Conversation</TooltipContent>
+            </Tooltip>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleOpenShareConversation}
-                disabled={!selectedConversation}
-              >
-                <Share2 className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Share Conversation</TooltipContent>
-          </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleOpenSharedChats}
+                  className="relative"
+                >
+                  <Inbox className="h-5 w-5" />
+                  {sharedMessageCount > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                      {sharedMessageCount > 9 ? "9+" : sharedMessageCount}
+                    </span>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Shared Chats</TooltipContent>
+            </Tooltip>
+          </div>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleOpenSharedChats}
-                className="relative"
-              >
-                <Inbox className="h-5 w-5" />
-                {sharedMessageCount > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
-                    {sharedMessageCount > 9 ? "9+" : sharedMessageCount}
-                  </span>
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Shared Chats</TooltipContent>
-          </Tooltip>
-
+          {/* Bookmarks button — visible on all screen sizes */}
           <Button
             variant={showBookmarks ? "secondary" : "ghost"}
             size="icon"
@@ -666,40 +678,128 @@ function AppContent() {
               </span>
             )}
           </Button>
-          {isAdmin && (
+
+          {/* Desktop-only: Admin + Change Password + Logout */}
+          <div className="hidden md:flex items-center gap-2">
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => navigateTo("/admin")}
+                title="Admin"
+              >
+                <Settings className="h-5 w-5" />
+              </Button>
+            )}
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
-              onClick={() => navigateTo("/admin")}
-              title="Admin"
+              onClick={() => setShowChangePassword(true)}
+              title="Change Password"
             >
-              <Settings className="h-5 w-5" />
+              <KeyRound className="h-5 w-5" />
             </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowChangePassword(true)}
-            title="Change Password"
-          >
-            <KeyRound className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={logout}
-            className="lg:hidden"
-          >
-            <LogOut className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={logout}
-            className="hidden lg:flex"
-          >
-            <LogOut className="h-4 w-4 mr-1" /> Logout
-          </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={logout}
+            >
+              <LogOut className="h-4 w-4 mr-1" /> Logout
+            </Button>
+          </div>
+
+          {/* Mobile-only: ⋮ More dropdown */}
+          <div className="md:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreVertical className="h-5 w-5" />
+                  <span className="sr-only">More options</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel className="text-xs">
+                  {user?.username}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+
+                {/* Room section */}
+                <DropdownMenuLabel>Room</DropdownMenuLabel>
+                {isInRoom ? (
+                  <DropdownMenuItem
+                    onClick={() => setShowRoomPanel(!showRoomPanel)}
+                  >
+                    <Users className="h-4 w-4" />
+                    Room ({currentRoom?.participants.filter((p) => p.isOnline).length || 0} online)
+                  </DropdownMenuItem>
+                ) : (
+                  <>
+                    <DropdownMenuItem
+                      onClick={() => setShowCreateRoom(true)}
+                      disabled={!selectedConversation}
+                    >
+                      <Users className="h-4 w-4" />
+                      Read Together
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setShowJoinRoom(true)}
+                      disabled={!isConnected}
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      Join Room
+                    </DropdownMenuItem>
+                  </>
+                )}
+                <DropdownMenuItem onClick={() => setShowRoomManager(true)}>
+                  <LayoutList className="h-4 w-4" />
+                  Room Manager
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                {/* Share section */}
+                <DropdownMenuItem
+                  onClick={handleOpenShareConversation}
+                  disabled={!selectedConversation}
+                >
+                  <Share2 className="h-4 w-4" />
+                  Share Conversation
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleOpenSharedChats}
+                  className="relative"
+                >
+                  <Inbox className="h-4 w-4" />
+                  Shared Chats
+                  {sharedMessageCount > 0 && (
+                    <span className="ml-auto flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                      {sharedMessageCount > 9 ? "9+" : sharedMessageCount}
+                    </span>
+                  )}
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                {/* Account section */}
+                {isAdmin && (
+                  <DropdownMenuItem onClick={() => navigateTo("/admin")}>
+                    <Settings className="h-4 w-4" />
+                    Admin Dashboard
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  onClick={() => setShowChangePassword(true)}
+                >
+                  <KeyRound className="h-4 w-4" />
+                  Change Password
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={logout}>
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </header>
 

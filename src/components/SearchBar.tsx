@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { useMessages } from "@/context/MessageContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Search,
   ChevronUp,
@@ -147,7 +146,7 @@ export function SearchBar() {
 
         {/* Search Results Dropdown */}
         {showDropdown && hasQuery && (
-          <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-background border border-border rounded-lg shadow-lg overflow-hidden min-w-[320px] lg:min-w-[400px]">
+          <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-background border border-border rounded-lg shadow-lg overflow-hidden min-w-[320px] lg:min-w-[400px] max-h-[min(420px,70vh)]">
             {isSearching ? (
               <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -155,13 +154,13 @@ export function SearchBar() {
               </div>
             ) : hasResults ? (
               <>
-                <div className="px-3 py-2 border-b border-border bg-muted/50">
+                <div className="px-3 py-2 border-b border-border bg-muted/50 shrink-0">
                   <span className="text-xs text-muted-foreground font-medium">
                     {searchResults.length} result
                     {searchResults.length !== 1 ? "s" : ""} found
                   </span>
                 </div>
-                <ScrollArea className="max-h-[350px]">
+                <div className="overflow-y-auto max-h-[min(370px,calc(70vh-40px))]">
                   <div className="divide-y divide-border">
                     {searchResults.map((result, index) => {
                       const isLoading =
@@ -214,7 +213,7 @@ export function SearchBar() {
                       );
                     })}
                   </div>
-                </ScrollArea>
+                </div>
               </>
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">

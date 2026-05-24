@@ -4,7 +4,8 @@ import { useMessages } from "@/context/MessageContext";
 import { useRoom } from "@/context/RoomContext";
 import { MessageBubble } from "./MessageBubble";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   CalendarDays,
   ChevronDown,
@@ -15,6 +16,7 @@ import {
   RotateCcw,
   Users,
 } from "lucide-react";
+import { format } from "date-fns";
 import { formatDateSeparator, isSameDay } from "@/lib/utils";
 import type { RoomScrollSyncEvent } from "@/types/room";
 import type { Message } from "@/types/message";
@@ -54,7 +56,9 @@ export function MessageList({ onShareMessage }: MessageListProps) {
     null,
   );
   const [showDatePicker, setShowDatePicker] = React.useState(false);
-  const [dateInput, setDateInput] = React.useState("");
+  const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(
+    undefined,
+  );
   const [dateError, setDateError] = React.useState<string | null>(null);
   const [isGoingToDate, setIsGoingToDate] = React.useState(false);
   const [pendingDateNavigation, setPendingDateNavigation] =
@@ -280,7 +284,7 @@ export function MessageList({ onShareMessage }: MessageListProps) {
   };
 
   const handleGoToDate = async () => {
-    if (!dateInput) {
+    if (!selectedDate) {
       setDateError("Please choose a date.");
       return;
     }
@@ -288,7 +292,13 @@ export function MessageList({ onShareMessage }: MessageListProps) {
     setDateError(null);
     setIsGoingToDate(true);
     try {
-      const found = await goToDate(new Date(`${dateInput}T00:00:00`));
+      const found = await goToDate(
+        new Date(
+          selectedDate.getFullYear(),
+          selectedDate.getMonth(),
+          selectedDate.getDate(),
+        ),
+      );
       if (!found) {
         setPendingDateNavigation(false);
         setDateError("No messages found on this date.");
@@ -421,7 +431,7 @@ export function MessageList({ onShareMessage }: MessageListProps) {
 
   useEffect(() => {
     setShowDatePicker(false);
-    setDateInput("");
+    setSelectedDate(undefined);
     setDateError(null);
     setPendingDateNavigation(false);
   }, [selectedConversation?.id]);
@@ -571,37 +581,62 @@ export function MessageList({ onShareMessage }: MessageListProps) {
       </div>
 
       {showDatePicker && (
-        <div className="absolute right-4 top-16 z-20 w-[min(22rem,calc(100%-2rem))] rounded-lg border border-border bg-background/95 p-3 shadow-lg backdrop-blur-sm">
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">
+        <div className="absolute right-4 top-16 z-20 w-fit rounded-lg border border-border bg-background/95 shadow-lg backdrop-blur-sm">
+          <div className="p-3 border-b border-border">
+            <p className="text-xs font-medium text-muted-foreground">
               Jump to messages on date
-            </label>
-            <div className="flex items-center gap-2">
-              <Input
-                type="date"
-                value={dateInput}
-                onChange={(event) => setDateInput(event.target.value)}
-                max={new Date().toISOString().split("T")[0]}
-              />
+            </p>
+          </div>
+          <Popover>
+            <div className="p-3 space-y-3">
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal"
+                  disabled={isGoingToDate || isNavigatingToMessage}
+                >
+                  <CalendarDays className="mr-2 h-4 w-4 shrink-0" />
+                  {selectedDate ? (
+                    format(selectedDate, "PPP")
+                  ) : (
+                    <span className="text-muted-foreground">Pick a date</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => {
+                    setSelectedDate(date);
+                    setDateError(null);
+                  }}
+                  disabled={(date) => date > new Date()}
+                  initialFocus
+                />
+              </PopoverContent>
               <Button
+                className="w-full"
                 size="sm"
                 onClick={handleGoToDate}
-                disabled={!dateInput || isGoingToDate || isNavigatingToMessage}
+                disabled={!selectedDate || isGoingToDate || isNavigatingToMessage}
               >
                 {isGoingToDate ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  "Go"
+                  "Go to date"
                 )}
               </Button>
+              {dateError && (
+                <p className="text-xs text-red-600">{dateError}</p>
+              )}
+              {isNavigatingToMessage && (
+                <p className="text-xs text-muted-foreground">
+                  Loading target date... {Math.max(navigationProgress, 1)}%
+                </p>
+              )}
             </div>
-            {dateError && <p className="text-xs text-red-600">{dateError}</p>}
-            {isNavigatingToMessage && (
-              <p className="text-xs text-muted-foreground">
-                Loading target date... {Math.max(navigationProgress, 1)}%
-              </p>
-            )}
-          </div>
+          </Popover>
         </div>
       )}
 

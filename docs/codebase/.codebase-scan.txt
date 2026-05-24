@@ -1,0 +1,380 @@
+
+=== DIRECTORY TREE (max depth 3, source files only) ===
+.dockerignore
+.github
+.github/instructions
+.github/instructions/backend-api.instructions.md
+.github/instructions/deployment.instructions.md
+.github/instructions/frontend-patterns.instructions.md
+.github/instructions/project-architecture.instructions.md
+.github/workflows
+.github/workflows/deploy.yml
+.gitignore
+.playwright-mcp
+.playwright-mcp/console-2026-04-19T09-55-25-641Z.log
+.playwright-mcp/console-2026-04-19T09-55-55-762Z.log
+.playwright-mcp/console-2026-04-19T09-56-42-381Z.log
+.playwright-mcp/console-2026-04-19T09-56-56-827Z.log
+.playwright-mcp/console-2026-04-19T09-57-07-098Z.log
+.playwright-mcp/console-2026-04-19T09-57-43-120Z.log
+.playwright-mcp/console-2026-04-19T09-58-22-657Z.log
+.playwright-mcp/page-2026-04-19T09-55-25-817Z.yml
+.playwright-mcp/page-2026-04-19T09-55-55-927Z.yml
+.playwright-mcp/page-2026-04-19T09-56-42-482Z.yml
+.playwright-mcp/page-2026-04-19T09-56-56-904Z.yml
+.playwright-mcp/page-2026-04-19T09-56-59-225Z.png
+.playwright-mcp/page-2026-04-19T09-57-07-202Z.yml
+.playwright-mcp/page-2026-04-19T09-57-43-256Z.yml
+.playwright-mcp/page-2026-04-19T09-58-22-831Z.yml
+.playwright-mcp/page-2026-04-19T09-58-25-452Z.png
+.playwright-mcp/page-2026-04-19T09-58-44-350Z.yml
+.playwright-mcp/page-2026-04-19T09-58-49-156Z.yml
+.playwright-mcp/page-2026-04-19T09-59-13-236Z.yml
+.playwright-mcp/page-2026-04-19T09-59-55-236Z.yml
+.playwright-mcp/page-2026-04-19T10-00-28-676Z.yml
+.playwright-mcp/page-2026-04-19T10-00-58-542Z.yml
+.vscode
+.vscode/settings.json
+Dockerfile
+docker-compose.prod.yml
+docker-compose.yml
+docs
+docs/codebase
+docs/codebase/.codebase-scan.txt
+eslint.config.js
+index.html
+messages.csv
+mongo-init.js
+nginx
+nginx/linkedin.tuetran.dev.conf
+nginx.conf
+package-lock.json
+package.json
+public
+public/favicon.svg
+public/icons.svg
+server
+server/.dockerignore
+server/.env
+server/.env.example
+server/Dockerfile
+server/data
+server/data/linkedin-msg.db
+server/data/linkedin-msg.db-shm
+server/data/linkedin-msg.db-wal
+server/package-lock.json
+server/package.json
+server/src
+server/src/db
+server/src/db/database.ts
+server/src/db/mongodb.ts
+server/src/index.ts
+server/src/middleware
+server/src/middleware/auth.mongo.ts
+server/src/middleware/auth.ts
+server/src/routes
+server/src/routes/auth.mongo.ts
+server/src/routes/auth.ts
+server/src/routes/bookmarks.mongo.ts
+server/src/routes/bookmarks.ts
+server/src/routes/conversations.mongo.ts
+server/src/routes/conversations.ts
+server/src/routes/messages.mongo.ts
+server/src/routes/messages.ts
+server/src/routes/rooms.mongo.ts
+server/src/routes/search.mongo.ts
+server/src/routes/search.ts
+server/src/routes/users.mongo.ts
+server/src/routes/users.ts
+server/src/socket
+server/src/socket/auth.ts
+server/src/socket/handlers.ts
+server/src/utils
+server/tsconfig.json
+src
+src/App.tsx
+src/api
+src/api/client.ts
+src/assets
+src/assets/hero.png
+src/assets/react.svg
+src/assets/vite.svg
+src/components
+src/components/BookmarkPanel.tsx
+src/components/ConversationList.tsx
+src/components/CreateRoomModal.tsx
+src/components/JoinRoomModal.tsx
+src/components/MessageBubble.tsx
+src/components/MessageList.tsx
+src/components/RoomManagerModal.tsx
+src/components/RoomPanel.tsx
+src/components/SearchBar.tsx
+src/components/admin
+src/components/admin/AdminDashboard.tsx
+src/components/admin/ConversationManager.tsx
+src/components/admin/UserManagement.tsx
+src/components/auth
+src/components/auth/ChangePasswordModal.tsx
+src/components/auth/LoginForm.tsx
+src/components/ui
+src/components/ui/avatar.tsx
+src/components/ui/button.tsx
+src/components/ui/input.tsx
+src/components/ui/scroll-area.tsx
+src/components/ui/sheet.tsx
+src/components/ui/tooltip.tsx
+src/context
+src/context/AuthContext.tsx
+src/context/MessageContext.tsx
+src/context/RoomContext.tsx
+src/hooks
+src/hooks/useMediaQuery.ts
+src/index.css
+src/lib
+src/lib/utils.ts
+src/main.tsx
+src/types
+src/types/message.ts
+src/types/room.ts
+src/utils
+src/utils/csvParser.ts
+tsconfig.app.json
+tsconfig.json
+tsconfig.node.json
+vite.config.ts
+
+=== STACK DETECTION (manifest files) ===
+
+--- package-lock.json ---
+{
+  "name": "linkedin-msg-temp",
+  "version": "0.0.0",
+  "lockfileVersion": 3,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "linkedin-msg-temp",
+      "version": "0.0.0",
+      "dependencies": {
+        "@radix-ui/react-avatar": "^1.1.11",
+        "@radix-ui/react-dialog": "^1.1.15",
+        "@radix-ui/react-scroll-area": "^1.2.10",
+        "@radix-ui/react-slot": "^1.2.4",
+        "@radix-ui/react-tooltip": "^1.2.8",
+        "@tanstack/react-virtual": "^3.13.24",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
+        "date-fns": "^4.1.0",
+        "dompurify": "^3.2.5",
+        "lucide-react": "^1.8.0",
+        "papaparse": "^5.5.3",
+        "react": "^19.2.4",
+        "react-dom": "^19.2.4",
+        "socket.io-client": "^4.8.3",
+        "tailwind-merge": "^3.5.0"
+      },
+      "devDependencies": {
+        "@eslint/js": "^9.39.4",
+        "@tailwindcss/vite": "^4.2.2",
+        "@types/dompurify": "^3.2.0",
+        "@types/node": "^24.12.2",
+        "@types/papaparse": "^5.5.2",
+        "@types/react": "^19.2.14",
+        "@types/react-dom": "^19.2.3",
+        "@vitejs/plugin-react": "^6.0.1",
+        "concurrently": "^9.1.2",
+        "eslint": "^9.39.4",
+        "eslint-plugin-react-hooks": "^7.0.1",
+        "eslint-plugin-react-refresh": "^0.5.2",
+        "globals": "^17.4.0",
+        "tailwindcss": "^4.2.2",
+        "typescript": "~6.0.2",
+        "typescript-eslint": "^8.58.0",
+        "vite": "^8.0.4"
+      }
+    },
+    "node_modules/@babel/code-frame": {
+      "version": "7.29.0",
+      "resolved": "https://registry.npmjs.org/@babel/code-frame/-/code-frame-7.29.0.tgz",
+      "integrity": "sha512-9NhCeYjq9+3uxgdtp20LSiJXJvN0FeCtNGpJxuMFZ1Kv3cWUNb6DOhJwUvcVCzKGR66cw4njwM6hrJLqgOwbcw==",
+      "dev": true,
+      "license": "MIT",
+      "dependencies": {
+        "@babel/helper-validator-identifier": "^7.28.5",
+        "js-tokens": "^4.0.0",
+        "picocolors": "^1.1.1"
+      },
+      "engines": {
+        "node": ">=6.9.0"
+      }
+    },
+    "node_modules/@babel/compat-data": {
+      "version": "7.29.0",
+      "resolved": "https://registry.npmjs.org/@babel/compat-data/-/compat-data-7.29.0.tgz",
+      "integrity": "sha512-T1NCJqT/j9+cn8fvkt7jtwbLBfLC/1y1c7NtCeXFRgzGTsafi68MRv8yzkYSapBnFA6L3U2VSc02ciDzoAJhJg==",
+      "dev": true,
+      "license": "MIT",
+      "engines": {
+        "node": ">=6.9.0"
+      }
+    },
+    "node_modules/@babel/core": {
+      "version": "7.29.0",
+      "resolved": "https://registry.npmjs.org/@babel/core/-/core-7.29.0.tgz",
+      "integrity": "sha512-CGOfOJqWjg2qW/Mb6zNsDm+u5vFQ8DxXfbM09z69p5Z6+mE1ikP2jUXw+j42Pf1XTYED2Rni5f95npYeuwMDQA==",
+      "dev": true,
+      "license": "MIT",
+      "peer": true,
+      "dependencies": {
+
+[TRUNCATED] Showing first 80 of 4970 lines.
+--- package.json ---
+{
+  "name": "linkedin-msg-temp",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:client": "vite",
+    "dev:server": "cd server && npm run dev",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@radix-ui/react-avatar": "^1.1.11",
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-scroll-area": "^1.2.10",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-tooltip": "^1.2.8",
+    "@tanstack/react-virtual": "^3.13.24",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "dompurify": "^3.2.5",
+    "lucide-react": "^1.8.0",
+    "papaparse": "^5.5.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "socket.io-client": "^4.8.3",
+    "tailwind-merge": "^3.5.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@tailwindcss/vite": "^4.2.2",
+    "@types/dompurify": "^3.2.0",
+    "@types/node": "^24.12.2",
+    "@types/papaparse": "^5.5.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.1.2",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.4.0",
+    "tailwindcss": "^4.2.2",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.58.0",
+    "vite": "^8.0.4"
+  }
+}
+
+
+=== ENTRY POINTS ===
+No common entry points found. Check 'main' or 'scripts.start' in manifest files above.
+
+=== LINTING AND FORMATTING CONFIG ===
+Found: eslint.config.js
+Found: tsconfig.json
+
+=== ENVIRONMENT VARIABLE TEMPLATES ===
+No .env.example or .env.template found. Identify required environment variables by searching the code and config for environment variable reads.
+
+=== TODO / FIXME / HACK (production code only, test dirs excluded) ===
+None found.
+
+=== GIT RECENT COMMITS (last 20) ===
+84b1eff feat: implement navigation state management and admin route handling
+6de58e3 feat: add online status and last seen tracking for users
+8902dbd feat: implement message sync pause and resync functionality in MessageList
+4ca5f65 refactor: remove unnecessary control check in handleScrollSync
+39c7739 feat: add formatMessageDateTime utility and update MessageBubble to use it
+3c13148 feat: optimize message scrolling behavior on conversation change
+2f26f39 refactor: remove unused refreshConversations and targetDate variables in message context
+8e20c35 feat: enhance message navigation with progress tracking and improved loading states
+b354be4 feat: enhance conversation sharing and navigation features with date selection and user role filtering
+4735202 feat: add message sharing functionality with previews and types in shared chats
+3ef9c83 Implement feature X to enhance user experience and optimize performance
+b5e48c4 feat: enhance deployment process with commit logging and frontend cache control headers
+f7d4c65 feat: implement shared chat functionality with user sharing and received shares management
+ac02eb9 feat: enhance deployment configuration with .env refresh and health checks for backend service
+683bd38 feat: add missing ports configuration for backend service in docker-compose
+f69cace feat: unify password hashing by adding passwordHash field in user registration and update processes
+413561e feat: update backend port configuration to 3001 across deployment and environment files
+a829715 feat: add HTTP fallback for joining rooms with retry logic and update socket connection handling
+df81bb5 feat: implement room creation via HTTP with retry logic and unique code generation
+37cb415 feat: enhance room creation with request ID handling and improved response management
+
+=== HIGH-CHURN FILES (last 90 days, top 20) ===
+  19 src/context/MessageContext.tsx
+  14 src/App.tsx
+  13 src/components/MessageList.tsx
+  10 server/src/db/mongodb.ts
+  10 src/components/MessageBubble.tsx
+   9 server/src/index.ts
+   8 src/context/RoomContext.tsx
+   7 server/src/routes/conversations.mongo.ts
+   7 src/components/SearchBar.tsx
+   6 nginx.conf
+   6 docker-compose.prod.yml
+   6 nginx/linkedin.tuetran.dev.conf
+   5 src/api/client.ts
+   5 src/components/admin/UserManagement.tsx
+   5 package-lock.json
+   5 .github/workflows/deploy.yml
+   5 src/components/admin/AdminDashboard.tsx
+   5 src/components/BookmarkPanel.tsx
+   4 server/src/routes/auth.mongo.ts
+   4 server/src/routes/users.mongo.ts
+
+=== MONOREPO SIGNALS ===
+No monorepo signals detected.
+
+=== CODE METRICS ===
+Total files scanned: 107
+Total lines of code: 18056
+
+Files by language:
+  Other: 53
+  TypeScript: 27
+  TypeScript/React: 25
+  JavaScript: 2
+
+Top 10 largest files:
+messages.csv: 31912.7KB
+package-lock.json: 172.6KB
+server/package-lock.json: 132.4KB
+server/data/linkedin-msg.db-wal: 80.5KB
+.playwright-mcp/page-2026-04-19T09-56-59-225Z.png: 79.0KB
+.playwright-mcp/page-2026-04-19T09-58-25-452Z.png: 44.4KB
+src/assets/hero.png: 43.9KB
+server/data/linkedin-msg.db-shm: 32.0KB
+.playwright-mcp/page-2026-04-19T10-00-58-542Z.yml: 30.2KB
+.playwright-mcp/page-2026-04-19T10-00-28-676Z.yml: 29.4KB
+
+=== CI/CD PIPELINES ===
+CI/CD: GitHub Actions
+
+=== CONTAINERS & ORCHESTRATION ===
+Container: Docker found
+Orchestration: Docker Compose found
+
+=== SECURITY & COMPLIANCE ===
+No security configs detected.
+
+=== PERFORMANCE & TESTING ===
+No performance testing configs detected.
+
+=== SCAN COMPLETE ===
