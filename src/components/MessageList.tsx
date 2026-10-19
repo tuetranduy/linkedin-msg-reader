@@ -9,12 +9,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import {
   CalendarDays,
   ChevronDown,
+  MessagesSquare,
   ChevronUp,
   ChevronsUp,
   Loader2,
   Pause,
   RotateCcw,
-  Users,
 } from "lucide-react";
 import { format } from "date-fns";
 import { formatDateSeparator, isSameDay } from "@/lib/utils";
@@ -29,9 +29,17 @@ interface MessageItem {
 
 interface MessageListProps {
   onShareMessage?: (message: Message) => void;
+  /** Renders the conversation header; receives the list's own toolbar (jump to beginning / date) */
+  renderHeader?: (toolbar: React.ReactNode) => React.ReactNode;
+  /** Shown in the empty state on small screens, where the conversation list is hidden */
+  onBrowseConversations?: () => void;
 }
 
-export function MessageList({ onShareMessage }: MessageListProps) {
+export function MessageList({
+  onShareMessage,
+  renderHeader,
+  onBrowseConversations,
+}: MessageListProps) {
   const {
     selectedConversation,
     highlightedMessageId,
@@ -44,7 +52,6 @@ export function MessageList({ onShareMessage }: MessageListProps) {
     isNavigatingToMessage,
     navigationProgress,
     loadingProgress,
-    totalMessageCount,
     goToDate,
   } = useMessages();
   const { currentRoom, isInRoom, emitScroll, onScrollSync, offScrollSync } =
@@ -187,17 +194,31 @@ export function MessageList({ onShareMessage }: MessageListProps) {
     setHighlightedMessageId,
   ]);
 
+  const updateScrollButtons = useCallback(() => {
+    const parent = parentRef.current;
+    if (!parent) return;
+    const { scrollTop, scrollHeight, clientHeight } = parent;
+    setShowScrollButton(scrollHeight - scrollTop - clientHeight >= 200);
+    setShowScrollTopButton(scrollTop > 400);
+  }, []);
+
+  // Re-check once the virtualizer has measured real row heights; the scroll
+  // event fired by the initial jump-to-bottom only saw estimated sizes.
+  const totalSize = virtualizer.getTotalSize();
+  useEffect(() => {
+    const frame = requestAnimationFrame(updateScrollButtons);
+    return () => cancelAnimationFrame(frame);
+  }, [totalSize, selectedConversation?.id, updateScrollButtons]);
+
   // Show/hide scroll to bottom button
   useEffect(() => {
     const parent = parentRef.current;
     if (!parent) return;
 
     const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = parent;
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 200;
+      const { scrollTop, clientHeight } = parent;
       const isNearTop = scrollTop < 200;
-      setShowScrollButton(!isNearBottom);
-      setShowScrollTopButton(!isNearTop && scrollTop > 400);
+      updateScrollButtons();
 
       // Load more when scrolling near top
       if (isNearTop && hasMoreMessages && !isLoadingMore) {
@@ -254,6 +275,7 @@ export function MessageList({ onShareMessage }: MessageListProps) {
     items,
     virtualizer,
     emitScroll,
+    updateScrollButtons,
   ]);
 
   const scrollToBottom = () => {
@@ -436,300 +458,323 @@ export function MessageList({ onShareMessage }: MessageListProps) {
     setPendingDateNavigation(false);
   }, [selectedConversation?.id]);
 
-  if (isLoadingConversation) {
+  if (!selectedConversation && !isLoadingConversation) {
     return (
-      <div className="flex flex-1 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (!selectedConversation) {
-    return (
-      <div className="flex flex-1 items-center justify-center text-muted-foreground">
-        Select a conversation to view messages
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative flex-1 overflow-hidden">
-      <div
-        ref={parentRef}
-        className="h-full overflow-auto"
-        style={{ contain: "strict" }}
-      >
-        <div
-          style={{
-            height: `${virtualizer.getTotalSize()}px`,
-            width: "100%",
-            position: "relative",
-          }}
-        >
-          {virtualizer.getVirtualItems().map((virtualItem) => {
-            const item = items[virtualItem.index];
-
-            if (item.type === "date-separator") {
-              return (
-                <div
-                  key={virtualItem.key}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: `${virtualItem.size}px`,
-                    transform: `translateY(${virtualItem.start}px)`,
-                  }}
-                  className="flex items-center justify-center"
-                >
-                  <div className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
-                    {formatDateSeparator(item.date!)}
-                  </div>
-                </div>
-              );
-            }
-
-            const message = selectedConversation.messages[item.messageIndex!];
-            const prevItem = items[virtualItem.index - 1];
-            const showAvatar =
-              prevItem?.type === "date-separator" ||
-              (prevItem?.type === "message" &&
-                selectedConversation.messages[prevItem.messageIndex!].from !==
-                  message.from);
-
-            // Get participant index for coloring
-            const participantIndex = message.isCurrentUser
-              ? -1
-              : (participantIndexMap.get(message.from) ?? 0);
-
-            return (
-              <div
-                key={virtualItem.key}
-                data-index={virtualItem.index}
-                ref={virtualizer.measureElement}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  transform: `translateY(${virtualItem.start}px)`,
-                }}
-              >
-                <MessageBubble
-                  message={message}
-                  showAvatar={showAvatar}
-                  isHighlighted={message.id === highlightedMessageId}
-                  participantIndex={participantIndex}
-                  onShareMessage={onShareMessage}
-                />
-              </div>
-            );
-          })}
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-primary">
+          <MessagesSquare aria-hidden="true" className="h-7 w-7" />
         </div>
+        <div>
+          <h2 className="text-base font-semibold">Pick a conversation</h2>
+          <p className="mt-1 max-w-xs text-sm text-muted-foreground">
+            Choose a conversation to read its messages, bookmark highlights, or
+            read it together with others.
+          </p>
+        </div>
+        {onBrowseConversations && (
+          <Button onClick={onBrowseConversations} className="mt-1">
+            Browse conversations
+          </Button>
+        )}
       </div>
+    );
+  }
 
-      {showScrollButton && (
+  const toolbar = selectedConversation && (
+    <div className="flex items-center gap-1">
+      {hasMoreMessages && (
         <Button
-          variant="secondary"
-          size="icon"
-          className="absolute bottom-4 right-4 rounded-full shadow-lg"
-          onClick={scrollToBottom}
+          variant="ghost"
+          size="sm"
+          onClick={goToBeginning}
+          disabled={isLoadingMore || isGoingToDate || isNavigatingToMessage}
+          aria-label="Load all and jump to the first message"
+          title="Jump to the first message"
         >
-          <ChevronDown className="h-5 w-5" />
+          <ChevronsUp className="h-4 w-4" />
+          <span className="hidden lg:inline">Beginning</span>
         </Button>
       )}
 
-      <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
-        {hasMoreMessages && (
+      <Popover
+        open={showDatePicker}
+        onOpenChange={(open) => {
+          setDateError(null);
+          setShowDatePicker(open);
+        }}
+      >
+        <PopoverTrigger asChild>
           <Button
-            variant="secondary"
+            variant={showDatePicker ? "secondary" : "ghost"}
             size="sm"
-            className="rounded-full px-3 shadow-lg"
-            onClick={goToBeginning}
-            disabled={isLoadingMore || isGoingToDate || isNavigatingToMessage}
+            disabled={isGoingToDate || isNavigatingToMessage}
+            aria-label="Go to date"
+            title="Go to date"
           >
-            <ChevronsUp className="mr-1 h-4 w-4" />
-            Beginning
+            <CalendarDays className="h-4 w-4" />
+            <span className="hidden lg:inline">Go to date</span>
           </Button>
-        )}
-
-        <Button
-          variant={showDatePicker ? "secondary" : "outline"}
-          size="sm"
-          className="rounded-full px-3 shadow-lg"
-          onClick={() => {
-            setDateError(null);
-            setShowDatePicker((prev) => !prev);
-          }}
-          disabled={isGoingToDate || isNavigatingToMessage}
-        >
-          <CalendarDays className="mr-1 h-4 w-4" />
-          <span className="hidden sm:inline">Go to date</span>
-        </Button>
-
-        {showScrollTopButton && (
-          <Button
-            variant="secondary"
-            size="icon"
-            className="rounded-full shadow-lg"
-            onClick={scrollToTop}
-          >
-            <ChevronUp className="h-5 w-5" />
-          </Button>
-        )}
-      </div>
-
-      {showDatePicker && (
-        <div className="absolute right-4 top-16 z-20 w-fit rounded-lg border border-border bg-background/95 shadow-lg backdrop-blur-sm">
-          <div className="p-3 border-b border-border">
-            <p className="text-xs font-medium text-muted-foreground">
-              Jump to messages on date
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-auto p-0">
+          <div className="border-b border-border px-3 py-2.5">
+            <p className="text-sm font-medium">Jump to a date</p>
+            <p className="text-xs text-muted-foreground">
+              {selectedDate
+                ? format(selectedDate, "PPP")
+                : "Pick a day to see its messages"}
             </p>
           </div>
-          <Popover>
-            <div className="p-3 space-y-3">
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left font-normal"
-                  disabled={isGoingToDate || isNavigatingToMessage}
-                >
-                  <CalendarDays className="mr-2 h-4 w-4 shrink-0" />
-                  {selectedDate ? (
-                    format(selectedDate, "PPP")
-                  ) : (
-                    <span className="text-muted-foreground">Pick a date</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <Calendar
-                  selected={selectedDate}
-                  onSelect={(date) => {
-                    setSelectedDate(date);
-                    setDateError(null);
-                  }}
-                  disabled={(date) => date > new Date()}
-                />
-              </PopoverContent>
-              <Button
-                className="w-full"
-                size="sm"
-                onClick={handleGoToDate}
-                disabled={!selectedDate || isGoingToDate || isNavigatingToMessage}
-              >
-                {isGoingToDate ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Go to date"
-                )}
-              </Button>
-              {dateError && (
-                <p className="text-xs text-red-600">{dateError}</p>
+          <Calendar
+            selected={selectedDate}
+            onSelect={(date) => {
+              setSelectedDate(date);
+              setDateError(null);
+            }}
+            disabled={(date) => date > new Date()}
+          />
+          <div className="space-y-2 border-t border-border p-3">
+            {dateError && (
+              <p role="alert" className="text-xs text-destructive">
+                {dateError}
+              </p>
+            )}
+            {isNavigatingToMessage && (
+              <p className="text-xs text-muted-foreground" aria-live="polite">
+                Loading messages… {Math.max(navigationProgress, 1)}%
+              </p>
+            )}
+            <Button
+              className="w-full"
+              size="sm"
+              onClick={handleGoToDate}
+              disabled={!selectedDate || isGoingToDate || isNavigatingToMessage}
+            >
+              {isGoingToDate ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Go to date"
               )}
-              {isNavigatingToMessage && (
-                <p className="text-xs text-muted-foreground">
-                  Loading target date... {Math.max(navigationProgress, 1)}%
-                </p>
-              )}
-            </div>
-          </Popover>
-        </div>
-      )}
-
-      {isLoadingMore && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 bg-background/80 backdrop-blur-sm px-4 py-2 rounded-lg shadow-lg min-w-[200px]">
-          <div className="flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-xs text-muted-foreground">
-              {loadingProgress > 0
-                ? `Loading all messages... ${loadingProgress}%`
-                : "Loading older messages..."}
-            </span>
+            </Button>
           </div>
-          {loadingProgress > 0 && (
-            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+
+  return (
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      {selectedConversation && renderHeader?.(toolbar)}
+
+      {isLoadingConversation || !selectedConversation ? (
+        <div
+          className="flex-1 space-y-5 overflow-hidden p-4 lg:px-6"
+          aria-busy="true"
+          aria-label="Loading messages"
+        >
+          {[60, 40, 72, 35, 55, 48].map((width, i) => (
+            <div
+              key={i}
+              className={`flex items-end gap-2.5 ${i % 2 ? "flex-row-reverse" : ""}`}
+            >
+              <div className="h-8 w-8 shrink-0 animate-pulse rounded-full bg-muted" />
               <div
-                className="h-full bg-primary transition-all duration-300 ease-out"
-                style={{ width: `${loadingProgress}%` }}
+                className="h-10 animate-pulse rounded-2xl bg-muted"
+                style={{ width: `${width}%` }}
               />
             </div>
-          )}
+          ))}
         </div>
-      )}
-
-      {isNavigatingToMessage && (
-        <div className="absolute top-20 left-1/2 z-20 flex min-w-[220px] -translate-x-1/2 flex-col items-center gap-1.5 rounded-lg bg-background/90 px-4 py-2 shadow-lg backdrop-blur-sm">
-          <div className="flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-xs text-muted-foreground">
-              Loading target message... {Math.max(navigationProgress, 1)}%
-            </span>
-          </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+      ) : (
+        <div className="relative flex-1 overflow-hidden">
+          <div
+            ref={parentRef}
+            className={`h-full overflow-auto ${isInRoom ? "pb-20" : "pb-4"}`}
+            style={{ contain: "strict" }}
+          >
             <div
-              className="h-full bg-primary transition-all duration-300 ease-out"
-              style={{ width: `${Math.max(navigationProgress, 1)}%` }}
-            />
+              style={{
+                height: `${virtualizer.getTotalSize()}px`,
+                width: "100%",
+                position: "relative",
+              }}
+            >
+              {virtualizer.getVirtualItems().map((virtualItem) => {
+                const item = items[virtualItem.index];
+
+                if (item.type === "date-separator") {
+                  return (
+                    <div
+                      key={virtualItem.key}
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: `${virtualItem.size}px`,
+                        transform: `translateY(${virtualItem.start}px)`,
+                      }}
+                      className="flex items-end justify-center pb-1"
+                    >
+                      <div className="rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-xs">
+                        {formatDateSeparator(item.date!)}
+                      </div>
+                    </div>
+                  );
+                }
+
+                const message = selectedConversation.messages[item.messageIndex!];
+                const prevItem = items[virtualItem.index - 1];
+                const showAvatar =
+                  prevItem?.type === "date-separator" ||
+                  (prevItem?.type === "message" &&
+                    selectedConversation.messages[prevItem.messageIndex!]
+                      .from !== message.from);
+
+                // Get participant index for coloring
+                const participantIndex = message.isCurrentUser
+                  ? -1
+                  : (participantIndexMap.get(message.from) ?? 0);
+
+                return (
+                  <div
+                    key={virtualItem.key}
+                    data-index={virtualItem.index}
+                    ref={virtualizer.measureElement}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      transform: `translateY(${virtualItem.start}px)`,
+                    }}
+                  >
+                    <MessageBubble
+                      message={message}
+                      showAvatar={showAvatar}
+                      isHighlighted={message.id === highlightedMessageId}
+                      participantIndex={participantIndex}
+                      onShareMessage={onShareMessage}
+                    />
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
 
-      {hasMoreMessages && selectedConversation && (
-        <div className="absolute top-4 left-4 text-xs text-muted-foreground bg-background/80 backdrop-blur-sm px-2 py-1 rounded">
-          {selectedConversation.messages.length} / {totalMessageCount} messages
-        </div>
-      )}
-
-      {/* Room sync indicator */}
-      {isInRoom && (
-        <div className="absolute bottom-16 left-2 right-2 z-20 flex max-w-[calc(100%-1rem)] items-center gap-2 rounded-lg border border-border bg-background/90 px-3 py-2 shadow-lg backdrop-blur-sm sm:bottom-4 sm:left-4 sm:right-auto sm:max-w-xs">
-          <Users className="h-4 w-4 text-primary" />
-          <div className="min-w-0 flex-1 text-xs">
-            {isSyncPaused ? (
-              <span className="block truncate text-amber-600 dark:text-amber-400">
-                Sync paused
-              </span>
-            ) : currentRoom?.canControl ? (
-              <span className="block truncate text-green-600 dark:text-green-400">
-                You control scroll
-              </span>
-            ) : syncController ? (
-              <span className="block truncate text-muted-foreground">
-                {syncController} is scrolling...
-              </span>
-            ) : (
-              <span className="block truncate text-muted-foreground">
-                Following room scroll
-              </span>
+          {/* Scroll shortcuts */}
+          <div
+            className={`absolute right-4 z-20 flex flex-col gap-2 ${isInRoom ? "bottom-20 sm:bottom-4" : "bottom-4"}`}
+          >
+            {showScrollTopButton && (
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 rounded-full shadow-lg"
+                onClick={scrollToTop}
+                aria-label="Scroll to top"
+                title="Scroll to top"
+              >
+                <ChevronUp className="h-5 w-5" />
+              </Button>
+            )}
+            {showScrollButton && (
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 rounded-full shadow-lg"
+                onClick={scrollToBottom}
+                aria-label="Scroll to latest message"
+                title="Scroll to latest message"
+              >
+                <ChevronDown className="h-5 w-5" />
+              </Button>
             )}
           </div>
-          {isSyncPaused ? (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 px-2 text-xs"
-              onClick={handleResync}
-              title="Re-sync to current room scroll"
+
+          {(isLoadingMore || isNavigatingToMessage) && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="absolute left-1/2 top-3 z-20 flex min-w-[220px] -translate-x-1/2 flex-col items-center gap-1.5 rounded-full border border-border bg-popover/95 px-4 py-2 shadow-lg backdrop-blur-sm"
             >
-              <RotateCcw className="mr-1 h-3 w-3" />
-              Re-sync
-            </Button>
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-xs"
-              onClick={handlePauseSync}
-              title="Pause sync on this device"
-            >
-              <Pause className="mr-1 h-3 w-3" />
-              Pause
-            </Button>
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <span className="text-xs text-muted-foreground">
+                  {isNavigatingToMessage
+                    ? `Finding message… ${Math.max(navigationProgress, 1)}%`
+                    : loadingProgress > 0
+                      ? `Loading all messages… ${loadingProgress}%`
+                      : "Loading older messages…"}
+                </span>
+              </div>
+              {(isNavigatingToMessage || loadingProgress > 0) && (
+                <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full bg-primary transition-[width] duration-300 ease-out"
+                    style={{
+                      width: `${isNavigatingToMessage ? Math.max(navigationProgress, 1) : loadingProgress}%`,
+                    }}
+                  />
+                </div>
+              )}
+            </div>
           )}
-          {hasPendingSync && isSyncPaused && (
-            <span className="text-[10px] text-muted-foreground">Update</span>
+
+          {/* Room sync indicator */}
+          {isInRoom && (
+            <div className="absolute bottom-4 left-3 right-3 z-20 flex items-center gap-2 rounded-xl border border-border bg-popover/95 px-3 py-2 shadow-lg backdrop-blur-sm sm:left-4 sm:right-auto sm:max-w-xs">
+              <span
+                aria-hidden="true"
+                className={`h-2 w-2 shrink-0 rounded-full ${isSyncPaused ? "bg-warning" : "bg-success"}`}
+              />
+              <div className="min-w-0 flex-1 text-xs" aria-live="polite">
+                {isSyncPaused ? (
+                  <span className="block truncate font-medium text-warning">
+                    Sync paused
+                  </span>
+                ) : currentRoom?.canControl ? (
+                  <span className="block truncate font-medium text-success">
+                    You control the scroll
+                  </span>
+                ) : syncController ? (
+                  <span className="block truncate text-muted-foreground">
+                    {syncController} is scrolling…
+                  </span>
+                ) : (
+                  <span className="block truncate text-muted-foreground">
+                    Following room scroll
+                  </span>
+                )}
+              </div>
+              {hasPendingSync && isSyncPaused && (
+                <span className="rounded-full bg-accent px-1.5 py-0.5 text-[11px] font-medium text-accent-foreground">
+                  New
+                </span>
+              )}
+              {isSyncPaused ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={handleResync}
+                  title="Re-sync to current room scroll"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Re-sync
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={handlePauseSync}
+                  title="Pause sync on this device"
+                >
+                  <Pause className="h-3 w-3" />
+                  Pause
+                </Button>
+              )}
+            </div>
           )}
         </div>
       )}

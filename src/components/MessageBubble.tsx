@@ -15,7 +15,15 @@ import {
   Image as ImageIcon,
   Share2,
 } from "lucide-react";
-import { cn, formatMessageDateTime, isUrl, isImageUrl } from "@/lib/utils";
+import {
+  cn,
+  formatMessageDateTime,
+  formatMessageTime,
+  getAvatarColor,
+  getInitials,
+  isUrl,
+  isImageUrl,
+} from "@/lib/utils";
 
 // Configure DOMPurify for safe HTML rendering
 const purifyConfig = {
@@ -72,19 +80,6 @@ export function MessageBubble({
     }
   };
 
-  const getInitials = (name: string | undefined | null) => {
-    if (!name) return "?";
-    return (
-      name
-        .split(" ")
-        .map((n) => n[0])
-        .filter(Boolean)
-        .slice(0, 2)
-        .join("")
-        .toUpperCase() || "?"
-    );
-  };
-
   // Parse URLs in content and safely render HTML
   const renderContent = () => {
     const content = message.content;
@@ -107,7 +102,7 @@ export function MessageBubble({
 
       return (
         <div
-          className="prose prose-sm max-w-none [&_a]:text-primary [&_a]:underline"
+          className="max-w-none [&_a]:underline [&_a]:underline-offset-2"
           dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
         />
       );
@@ -131,7 +126,8 @@ export function MessageBubble({
               <img
                 src={part}
                 alt="Shared image"
-                className="max-w-full rounded-lg"
+                loading="lazy"
+                className="max-h-72 max-w-full rounded-lg object-cover"
                 onError={(e) => {
                   // Fallback if image fails to load
                   const target = e.target as HTMLElement;
@@ -151,9 +147,9 @@ export function MessageBubble({
             href={part}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-primary underline break-all hover:text-primary/80"
+            className="inline-flex items-baseline gap-1 font-medium underline underline-offset-2 [overflow-wrap:anywhere] hover:opacity-80"
           >
-            <ExternalLink className="h-3 w-3 shrink-0" />
+            <ExternalLink aria-hidden="true" className="h-3 w-3 shrink-0 self-center" />
             {part.length > 50 ? part.slice(0, 50) + "..." : part}
           </a>
         );
@@ -178,50 +174,66 @@ export function MessageBubble({
     });
   };
 
+  const bubbleTone = message.isCurrentUser
+    ? "bg-primary text-primary-foreground rounded-br-md [&_a]:text-primary-foreground"
+    : participantIndex === 0
+      ? "bg-bubble text-bubble-foreground rounded-bl-md [&_a]:text-primary"
+      : "bg-bubble-alt text-bubble-alt-foreground rounded-bl-md [&_a]:text-primary";
+
+  // Hidden until hover on pointer devices, but always reachable by keyboard focus
+  const revealOnHover =
+    "transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100";
+
   return (
     <div
       className={cn(
-        "group flex gap-3 px-4 py-2 transition-colors",
+        "group flex gap-2.5 px-3 sm:px-4 lg:px-6",
+        showAvatar ? "pt-3 pb-0.5" : "py-0.5",
         message.isCurrentUser ? "flex-row-reverse" : "flex-row",
-        isHighlighted && "message-highlight bg-accent/20",
+        isHighlighted && "message-highlight",
       )}
       id={`message-${message.id}`}
     >
-      {showAvatar && (
-        <Avatar className="h-8 w-8 shrink-0">
-          <AvatarFallback className="bg-primary/10 text-primary text-xs">
+      {showAvatar ? (
+        <Avatar className="mt-0.5 h-8 w-8 shrink-0">
+          <AvatarFallback
+            className={cn("text-xs font-semibold", getAvatarColor(message.from))}
+          >
             {getInitials(message.from)}
           </AvatarFallback>
         </Avatar>
+      ) : (
+        <div className="w-8 shrink-0" aria-hidden="true" />
       )}
-
-      {!showAvatar && <div className="w-8" />}
 
       <div
         className={cn(
-          "flex max-w-[70%] flex-col",
+          "flex min-w-0 max-w-[85%] flex-col sm:max-w-[70%]",
           message.isCurrentUser && "items-end",
         )}
       >
+        {showAvatar && (
+          <p
+            className={cn(
+              "mb-1 px-1 text-xs font-medium text-muted-foreground",
+              message.isCurrentUser && "text-right",
+            )}
+          >
+            {message.isCurrentUser ? "You" : message.from}
+          </p>
+        )}
+
         <div
           className={cn(
-            "rounded-2xl px-4 py-2",
-            message.isCurrentUser
-              ? "bg-primary text-primary-foreground rounded-br-md"
-              : participantIndex === 0
-                ? "bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-slate-100 rounded-bl-md"
-                : "bg-violet-100 text-violet-900 dark:bg-violet-800 dark:text-violet-100 rounded-bl-md",
+            "rounded-2xl px-3.5 py-2 shadow-xs",
+            !showAvatar &&
+              (message.isCurrentUser ? "rounded-tr-md" : "rounded-tl-md"),
+            bubbleTone,
           )}
         >
-          {showAvatar && !message.isCurrentUser && (
-            <p className="mb-1 text-xs font-medium opacity-70">
-              {message.from}
-            </p>
-          )}
-
           <div
             className={cn(
-              "text-sm whitespace-pre-wrap wrap-break-word",
+              "text-[0.9375rem] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]",
               message.isCurrentUser &&
                 "[&_mark]:bg-primary-foreground/30 [&_mark]:text-primary-foreground",
             )}
@@ -242,6 +254,7 @@ export function MessageBubble({
                     <img
                       src={attachment}
                       alt={`Attachment ${i + 1}`}
+                      loading="lazy"
                       className="max-h-48 max-w-full rounded-lg"
                     />
                   </a>
@@ -253,7 +266,7 @@ export function MessageBubble({
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 text-xs underline"
                   >
-                    <ImageIcon className="h-3 w-3" />
+                    <ImageIcon aria-hidden="true" className="h-3 w-3" />
                     Attachment {i + 1}
                   </a>
                 ),
@@ -264,23 +277,26 @@ export function MessageBubble({
 
         <div
           className={cn(
-            "mt-1 flex items-center gap-2",
+            "mt-0.5 flex items-center gap-0.5 px-1",
             message.isCurrentUser && "flex-row-reverse",
           )}
         >
-          <span className="text-xs text-muted-foreground">
-            {formatMessageDateTime(message.date)}
-          </span>
+          <time
+            dateTime={message.date.toISOString()}
+            title={formatMessageDateTime(message.date)}
+            className="px-0.5 text-xs tabular-nums text-muted-foreground"
+          >
+            {formatMessageTime(message.date)}
+          </time>
 
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className={cn(
-                  "h-6 w-6 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100",
-                  bookmarked && "opacity-100!",
-                )}
+                aria-label={bookmarked ? "Remove bookmark" : "Bookmark message"}
+                aria-pressed={bookmarked}
+                className={cn("h-7 w-7", revealOnHover, bookmarked && "opacity-100!")}
                 onClick={toggleBookmark}
               >
                 {bookmarked ? (
@@ -295,20 +311,22 @@ export function MessageBubble({
             </TooltipContent>
           </Tooltip>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
-                onClick={() => onShareMessage?.(message)}
-                disabled={!onShareMessage}
-              >
-                <Share2 className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Share this message</TooltipContent>
-          </Tooltip>
+          {onShareMessage && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Share message"
+                  className={cn("h-7 w-7", revealOnHover)}
+                  onClick={() => onShareMessage(message)}
+                >
+                  <Share2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Share message</TooltipContent>
+            </Tooltip>
+          )}
         </div>
       </div>
     </div>

@@ -42,7 +42,8 @@ function Calendar({ selected, onSelect, disabled, className }: CalendarProps) {
         <Button
           variant="outline"
           size="icon"
-          className="h-7 w-7"
+          className="h-8 w-8"
+          aria-label="Previous month"
           onClick={() => setViewMonth((m) => subMonths(m, 1))}
         >
           <ChevronLeft className="h-4 w-4" />
@@ -53,7 +54,8 @@ function Calendar({ selected, onSelect, disabled, className }: CalendarProps) {
         <Button
           variant="outline"
           size="icon"
-          className="h-7 w-7"
+          className="h-8 w-8"
+          aria-label="Next month"
           onClick={() => setViewMonth((m) => addMonths(m, 1))}
         >
           <ChevronRight className="h-4 w-4" />
@@ -84,6 +86,8 @@ function Calendar({ selected, onSelect, disabled, className }: CalendarProps) {
             <button
               key={day.toISOString()}
               type="button"
+              aria-label={format(day, "PPPP")}
+              aria-pressed={isSelected}
               disabled={isDisabled || !isCurrentMonth}
               onClick={() => {
                 if (!isDisabled && isCurrentMonth) {
@@ -91,13 +95,13 @@ function Calendar({ selected, onSelect, disabled, className }: CalendarProps) {
                 }
               }}
               className={cn(
-                "h-8 w-8 mx-auto flex items-center justify-center rounded-md text-sm transition-colors",
+                "h-9 w-9 mx-auto flex items-center justify-center rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 !isCurrentMonth && "invisible",
                 isCurrentMonth &&
                   !isSelected &&
                   !isDisabled &&
                   "hover:bg-accent hover:text-accent-foreground",
-                isToday && !isSelected && "bg-accent text-accent-foreground",
+                isToday && !isSelected && "font-semibold text-primary ring-1 ring-inset ring-primary/40",
                 isSelected &&
                   "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
                 isDisabled && "text-muted-foreground opacity-50 cursor-not-allowed",

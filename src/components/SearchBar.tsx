@@ -33,6 +33,11 @@ function formatDate(date: Date): string {
   }
 }
 
+const shortcutLabel =
+  typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent)
+    ? "⌘K"
+    : "Ctrl K";
+
 function highlightText(text: string, query: string): React.ReactNode {
   if (!query.trim()) return text;
 
@@ -44,7 +49,7 @@ function highlightText(text: string, query: string): React.ReactNode {
 
   return parts.map((part, i) =>
     regex.test(part) ? (
-      <mark key={i} className="bg-yellow-200 dark:bg-yellow-800 rounded px-0.5">
+      <mark key={i}>
         {part}
       </mark>
     ) : (
@@ -68,6 +73,8 @@ export function SearchBar() {
 
   const [showDropdown, setShowDropdown] = useState(false);
   const [clickedResultId, setClickedResultId] = useState<string | null>(null);
+  // The first Enter opens the current result; later presses step through them
+  const [hasJumped, setHasJumped] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -89,6 +96,22 @@ export function SearchBar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // ⌘K / Ctrl+K focuses whichever search box is currently visible
+  useEffect(() => {
+    function handleShortcut(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        const input = inputRef.current;
+        if (!input || input.offsetParent === null) return;
+        event.preventDefault();
+        input.focus();
+        input.select();
+      }
+    }
+
+    document.addEventListener("keydown", handleShortcut);
+    return () => document.removeEventListener("keydown", handleShortcut);
+  }, []);
+
   // Show dropdown when there are results
   useEffect(() => {
     if (hasResults && hasQuery) {
@@ -106,7 +129,30 @@ export function SearchBar() {
 
   const handleResultClick = (result: (typeof searchResults)[0]) => {
     setClickedResultId(result.messageId);
+    setHasJumped(true);
     goToSearchResult(result);
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      if (showDropdown) {
+        setShowDropdown(false);
+      } else {
+        setSearchQuery("");
+        inputRef.current?.blur();
+      }
+    } else if (e.key === "Enter" && hasResults && !isSearching) {
+      e.preventDefault();
+      if (!hasJumped) {
+        goToSearchResult(searchResults[currentSearchIndex] ?? searchResults[0]);
+      } else if (e.shiftKey) {
+        goToPrevResult();
+      } else {
+        goToNextResult();
+      }
+      setHasJumped(true);
+      setShowDropdown(false);
+    }
   };
 
   const handleInputFocus = () => {
@@ -118,35 +164,58 @@ export function SearchBar() {
   return (
     <div
       ref={containerRef}
-      className="flex items-center gap-1.5 lg:gap-2 relative"
+      role="search"
+      className="relative flex items-center gap-1"
     >
-      <div className="relative flex-1 min-w-0">
-        <Search className="absolute left-2.5 lg:left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <div className="relative min-w-0 flex-1">
+        <Search
+          aria-hidden="true"
+          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+        />
         <Input
           ref={inputRef}
-          placeholder="Search messages..."
+          type="search"
+          aria-label="Search messages"
+          aria-expanded={showDropdown && hasQuery}
+          aria-controls="search-results"
+          aria-autocomplete="list"
+          role="combobox"
+          placeholder="Search messages"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setHasJumped(false);
+          }}
           onFocus={handleInputFocus}
-          className="pl-8 lg:pl-9 pr-7 lg:pr-8 h-9 lg:h-10 text-sm"
+          onKeyDown={handleInputKeyDown}
+          className="peer h-9 bg-muted/60 pl-9 pr-9 text-sm focus-visible:bg-card [&::-webkit-search-cancel-button]:hidden"
         />
-        {hasQuery && (
+        {hasQuery ? (
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-0.5 lg:right-1 top-1/2 h-6 w-6 -translate-y-1/2"
+            aria-label="Clear search"
+            className="absolute right-0.5 top-1/2 h-8 w-8 -translate-y-1/2"
             onClick={() => {
               setSearchQuery("");
               setShowDropdown(false);
+              inputRef.current?.focus();
             }}
           >
-            <X className="h-3 w-3" />
+            <X className="h-4 w-4" />
           </Button>
+        ) : (
+          <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 rounded border border-border bg-card px-1.5 py-0.5 font-sans text-[11px] text-muted-foreground lg:inline peer-focus:hidden">
+            {shortcutLabel}
+          </kbd>
         )}
 
         {/* Search Results Dropdown */}
         {showDropdown && hasQuery && (
-          <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-background border border-border rounded-lg shadow-lg overflow-hidden min-w-[320px] lg:min-w-[400px] max-h-[min(420px,70vh)]">
+          <div
+            id="search-results"
+            className="absolute left-0 top-full z-50 mt-1.5 max-h-[min(420px,70vh)] w-[min(28rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-xl"
+          >
             {isSearching ? (
               <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -154,10 +223,13 @@ export function SearchBar() {
               </div>
             ) : hasResults ? (
               <>
-                <div className="px-3 py-2 border-b border-border bg-muted/50 shrink-0">
-                  <span className="text-xs text-muted-foreground font-medium">
+                <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/50 px-3 py-2">
+                  <span className="text-xs font-medium text-muted-foreground">
                     {searchResults.length} result
-                    {searchResults.length !== 1 ? "s" : ""} found
+                    {searchResults.length !== 1 ? "s" : ""}
+                  </span>
+                  <span className="hidden text-[11px] text-muted-foreground sm:inline">
+                    Enter for next · Shift+Enter for previous
                   </span>
                 </div>
                 <div className="overflow-y-auto max-h-[min(370px,calc(70vh-40px))]">
@@ -172,8 +244,8 @@ export function SearchBar() {
                           onClick={() => handleResultClick(result)}
                           disabled={isNavigatingToMessage}
                           className={cn(
-                            "w-full text-left px-3 py-2.5 hover:bg-muted/80 transition-colors",
-                            index === currentSearchIndex && "bg-muted",
+                            "w-full px-3 py-2.5 text-left transition-colors hover:bg-muted/80 focus-visible:bg-muted focus-visible:outline-none",
+                            index === currentSearchIndex && "bg-accent/60",
                             isLoading && "bg-accent",
                             isNavigatingToMessage && !isLoading && "opacity-50",
                           )}
@@ -229,14 +301,19 @@ export function SearchBar() {
       {hasQuery && (
         <>
           <span
+            aria-live="polite"
             className={cn(
-              "text-xs lg:text-sm whitespace-nowrap",
-              hasResults ? "text-muted-foreground" : "text-destructive",
+              "whitespace-nowrap px-1 text-xs tabular-nums",
+              hasResults || isSearching
+                ? "text-muted-foreground"
+                : "text-destructive",
             )}
           >
-            {hasResults
-              ? `${currentSearchIndex + 1}/${searchResults.length}`
-              : "0"}
+            {isSearching
+              ? "Searching…"
+              : hasResults
+                ? `${currentSearchIndex + 1}/${searchResults.length}`
+                : "No results"}
           </span>
 
           <div className="flex items-center">
@@ -245,10 +322,13 @@ export function SearchBar() {
               size="icon"
               onClick={() => {
                 goToPrevResult();
+                setHasJumped(true);
                 setShowDropdown(false);
               }}
               disabled={!hasResults}
-              className="h-7 w-7 lg:h-8 lg:w-8"
+              aria-label="Previous result"
+              title="Previous result (Shift+Enter)"
+              className="h-8 w-8"
             >
               <ChevronUp className="h-4 w-4" />
             </Button>
@@ -257,10 +337,13 @@ export function SearchBar() {
               size="icon"
               onClick={() => {
                 goToNextResult();
+                setHasJumped(true);
                 setShowDropdown(false);
               }}
               disabled={!hasResults}
-              className="h-7 w-7 lg:h-8 lg:w-8"
+              aria-label="Next result"
+              title="Next result (Enter)"
+              className="h-8 w-8"
             >
               <ChevronDown className="h-4 w-4" />
             </Button>

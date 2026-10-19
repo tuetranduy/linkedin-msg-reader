@@ -83,7 +83,10 @@ export function RoomPanel({ isOpen, onClose }: RoomPanelProps) {
   const onlineCount = currentRoom.participants.filter((p) => p.isOnline).length;
 
   return (
-    <div className="flex h-full w-full lg:w-80 flex-col border-l border-border bg-card">
+    <aside
+      aria-label="Read together room"
+      className="flex h-full w-full flex-col border-l border-border bg-card md:w-80 md:shrink-0"
+    >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border p-3 lg:p-4">
         <div className="flex items-center gap-2">
@@ -97,6 +100,7 @@ export function RoomPanel({ isOpen, onClose }: RoomPanelProps) {
           variant="ghost"
           size="icon"
           onClick={onClose}
+          aria-label="Close room panel"
           className="h-8 w-8"
         >
           <X className="h-4 w-4" />
@@ -109,15 +113,15 @@ export function RoomPanel({ isOpen, onClose }: RoomPanelProps) {
           <div className="flex items-center gap-2 text-sm">
             {isConnected ? (
               <>
-                <Wifi className="h-4 w-4 text-green-500" />
-                <span className="text-green-600 dark:text-green-400">
+                <Wifi aria-hidden="true" className="h-4 w-4 text-success" />
+                <span className="font-medium text-success">
                   Connected
                 </span>
               </>
             ) : (
               <>
-                <WifiOff className="h-4 w-4 text-red-500" />
-                <span className="text-red-600 dark:text-red-400">
+                <WifiOff aria-hidden="true" className="h-4 w-4 text-destructive" />
+                <span className="font-medium text-destructive">
                   Disconnected
                 </span>
               </>
@@ -160,15 +164,15 @@ export function RoomPanel({ isOpen, onClose }: RoomPanelProps) {
             className={cn(
               "rounded-lg border p-3",
               currentRoom.canControl
-                ? "border-green-500/30 bg-green-500/10"
-                : "border-muted bg-muted/30",
+                ? "border-success/30 bg-success/10"
+                : "border-border bg-muted/40",
             )}
           >
             <div className="flex items-center gap-2">
               {currentRoom.canControl ? (
                 <>
-                  <MousePointerClick className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                  <MousePointerClick className="h-4 w-4 text-success" />
+                  <span className="text-sm font-medium text-success">
                     You can control scroll
                   </span>
                 </>
@@ -198,7 +202,7 @@ export function RoomPanel({ isOpen, onClose }: RoomPanelProps) {
                     <div
                       className={cn(
                         "w-2 h-2 rounded-full",
-                        participant.isOnline ? "bg-green-500" : "bg-gray-400",
+                        participant.isOnline ? "bg-success" : "bg-muted-foreground/40",
                       )}
                     />
                     <span className="text-sm font-medium">
@@ -212,13 +216,13 @@ export function RoomPanel({ isOpen, onClose }: RoomPanelProps) {
                         )?.id &&
                       participant.canControl &&
                       currentRoom.participants[0]?.id === participant.id && (
-                        <Crown className="h-3 w-3 text-yellow-500" />
+                        <Crown className="h-3 w-3 text-warning" />
                       )}
                   </div>
 
                   <div className="flex items-center gap-1">
                     {participant.canControl && (
-                      <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                      <span className="text-xs text-success flex items-center gap-1">
                         <MousePointerClick className="h-3 w-3" />
                       </span>
                     )}
@@ -249,7 +253,7 @@ export function RoomPanel({ isOpen, onClose }: RoomPanelProps) {
                           }
                         >
                           {participant.canControl ? (
-                            <MousePointerClick className="h-3 w-3 text-green-600" />
+                            <MousePointerClick className="h-3 w-3 text-success" />
                           ) : (
                             <MousePointer className="h-3 w-3 text-muted-foreground" />
                           )}
@@ -285,6 +289,6 @@ export function RoomPanel({ isOpen, onClose }: RoomPanelProps) {
           </Button>
         )}
       </div>
-    </div>
+    </aside>
   );
 }

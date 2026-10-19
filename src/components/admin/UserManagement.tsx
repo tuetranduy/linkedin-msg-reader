@@ -126,7 +126,11 @@ export function UserManagement() {
           onSubmit={handleCreate}
           className="p-3 lg:p-4 bg-muted rounded-lg space-y-3"
         >
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Input
               placeholder="Username"
@@ -228,7 +232,7 @@ export function UserManagement() {
                   <span
                     className={
                       user.is_online
-                        ? "text-green-600 dark:text-green-400"
+                        ? "text-success"
                         : "text-muted-foreground"
                     }
                   >
@@ -392,7 +396,7 @@ export function UserManagement() {
                     <div
                       className={`mt-1 text-xs ${
                         user.is_online
-                          ? "text-green-600 dark:text-green-400"
+                          ? "text-success"
                           : "text-muted-foreground"
                       }`}
                     >

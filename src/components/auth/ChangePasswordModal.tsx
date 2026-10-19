@@ -4,11 +4,12 @@ import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
 import { changePassword } from "@/api/client";
-import { Key, Check, Loader2 } from "lucide-react";
+import { AlertCircle, Key, Check, Loader2 } from "lucide-react";
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -78,19 +79,29 @@ export function ChangePasswordModal({
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Key className="h-5 w-5" />
-            Change Password
+            Change password
           </SheetTitle>
+          <SheetDescription>
+            Use at least 6 characters. You'll stay signed in on this device.
+          </SheetDescription>
         </SheetHeader>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           {error && (
-            <div className="p-3 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-md">
+            <div
+              role="alert"
+              className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive"
+            >
+              <AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
               {error}
             </div>
           )}
 
           {success && (
-            <div className="p-3 text-sm text-green-600 bg-green-50 dark:bg-green-900/20 rounded-md flex items-center gap-2">
+            <div
+              role="status"
+              className="flex items-center gap-2 rounded-lg bg-success/10 p-3 text-sm text-success"
+            >
               <Check className="h-4 w-4" />
               Password changed successfully!
             </div>
@@ -103,9 +114,9 @@ export function ChangePasswordModal({
             <Input
               id="currentPassword"
               type="password"
+              autoComplete="current-password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              placeholder="Enter current password"
               required
               disabled={isLoading || success}
             />
@@ -118,9 +129,10 @@ export function ChangePasswordModal({
             <Input
               id="newPassword"
               type="password"
+              autoComplete="new-password"
+              minLength={6}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Enter new password (min 6 characters)"
               required
               disabled={isLoading || success}
             />
@@ -133,9 +145,9 @@ export function ChangePasswordModal({
             <Input
               id="confirmPassword"
               type="password"
+              autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm new password"
               required
               disabled={isLoading || success}
             />

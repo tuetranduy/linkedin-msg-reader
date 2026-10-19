@@ -128,15 +128,20 @@ export function CreateRoomModal({
                   {selectedConversation?.title || "No conversation selected"}
                 </h4>
                 <p className="text-xs text-muted-foreground">
-                  {selectedConversation?.messages.length || 0} messages
+                  {(
+                    selectedConversation?.messageCount ??
+                    selectedConversation?.messages.length ??
+                    0
+                  ).toLocaleString()}{" "}
+                  messages
                 </p>
               </div>
 
-              <div className="text-sm text-muted-foreground space-y-2">
-                <p>• You'll be the room creator with scroll control</p>
-                <p>• Others join with your room code</p>
-                <p>• You can grant scroll control to others</p>
-              </div>
+              <ul className="list-disc space-y-1.5 pl-5 text-sm text-muted-foreground marker:text-primary">
+                <li>You'll be the room creator with scroll control</li>
+                <li>Others join with your room code</li>
+                <li>You can grant scroll control to others</li>
+              </ul>
             </>
           )}
 

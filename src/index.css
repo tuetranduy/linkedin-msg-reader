@@ -1,26 +1,36 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(222.2 84% 4.9%);
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Light theme (default) — LinkedIn-inspired blue on cool neutrals */
+  --color-background: hsl(220 20% 97%);
+  --color-foreground: hsl(222 47% 11%);
   --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(222.2 84% 4.9%);
+  --color-card-foreground: hsl(222 47% 11%);
   --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(222.2 84% 4.9%);
-  --color-primary: hsl(222.2 47.4% 11.2%);
-  --color-primary-foreground: hsl(210 40% 98%);
-  --color-secondary: hsl(210 40% 96.1%);
-  --color-secondary-foreground: hsl(222.2 47.4% 11.2%);
-  --color-muted: hsl(210 40% 96.1%);
-  --color-muted-foreground: hsl(215.4 16.3% 46.9%);
-  --color-accent: hsl(210 40% 96.1%);
-  --color-accent-foreground: hsl(222.2 47.4% 11.2%);
-  --color-destructive: hsl(0 84.2% 60.2%);
-  --color-destructive-foreground: hsl(210 40% 98%);
-  --color-border: hsl(214.3 31.8% 91.4%);
-  --color-input: hsl(214.3 31.8% 91.4%);
-  --color-ring: hsl(222.2 84% 4.9%);
-  --radius: 0.5rem;
+  --color-popover-foreground: hsl(222 47% 11%);
+  --color-primary: hsl(210 90% 40%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-secondary: hsl(220 16% 93%);
+  --color-secondary-foreground: hsl(222 47% 11%);
+  --color-muted: hsl(220 16% 94%);
+  --color-muted-foreground: hsl(220 9% 40%);
+  --color-accent: hsl(214 60% 94%);
+  --color-accent-foreground: hsl(214 80% 22%);
+  --color-destructive: hsl(0 72% 48%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  --color-success: hsl(152 60% 32%);
+  --color-warning: hsl(32 90% 38%);
+  --color-border: hsl(220 14% 89%);
+  --color-input: hsl(220 14% 85%);
+  --color-ring: hsl(210 90% 45%);
+  --color-highlight: hsl(48 96% 72%);
+  --color-bubble: hsl(220 16% 93%);
+  --color-bubble-foreground: hsl(222 47% 11%);
+  --color-bubble-alt: hsl(258 70% 94%);
+  --color-bubble-alt-foreground: hsl(258 45% 22%);
+  --radius: 0.625rem;
   --color-chart-1: hsl(12 76% 61%);
   --color-chart-2: hsl(173 58% 39%);
   --color-chart-3: hsl(197 37% 24%);
@@ -28,16 +38,69 @@
   --color-chart-5: hsl(27 87% 67%);
 }
 
+/* Dark theme — follows the OS setting, matching Tailwind's default `dark:` variant */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: hsl(222 24% 7%);
+    --color-foreground: hsl(210 20% 96%);
+    --color-card: hsl(222 20% 10%);
+    --color-card-foreground: hsl(210 20% 96%);
+    --color-popover: hsl(222 20% 12%);
+    --color-popover-foreground: hsl(210 20% 96%);
+    --color-primary: hsl(208 85% 58%);
+    --color-primary-foreground: hsl(222 47% 8%);
+    --color-secondary: hsl(220 14% 17%);
+    --color-secondary-foreground: hsl(210 20% 96%);
+    --color-muted: hsl(220 14% 15%);
+    --color-muted-foreground: hsl(218 11% 68%);
+    --color-accent: hsl(212 40% 18%);
+    --color-accent-foreground: hsl(210 80% 88%);
+    --color-destructive: hsl(0 75% 62%);
+    --color-destructive-foreground: hsl(222 47% 8%);
+    --color-success: hsl(152 55% 55%);
+    --color-warning: hsl(38 92% 60%);
+    --color-border: hsl(220 13% 19%);
+    --color-input: hsl(220 13% 24%);
+    --color-ring: hsl(208 85% 58%);
+    --color-highlight: hsl(45 80% 38%);
+    --color-bubble: hsl(220 14% 17%);
+    --color-bubble-foreground: hsl(210 20% 96%);
+    --color-bubble-alt: hsl(258 30% 22%);
+    --color-bubble-alt-foreground: hsl(258 80% 92%);
+  }
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
   }
+  html {
+    color-scheme: light dark;
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     margin: 0;
   }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([data-disabled]) {
+    cursor: pointer;
+  }
+  button,
+  a {
+    touch-action: manipulation;
+  }
+}
+
+/* Thin, theme-aware scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--color-muted-foreground) 35%, transparent) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -46,30 +109,33 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-muted);
-  border-radius: 4px;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: var(--color-muted-foreground);
-  opacity: 0.3;
-  border-radius: 4px;
+  background-color: color-mix(in oklab, var(--color-muted-foreground) 35%, transparent);
+  border-radius: 9999px;
 }
 
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklab, var(--color-muted-foreground) 55%, transparent);
+}
+
+/* Pulse a soft background behind a message we jumped to (never fades the message itself) */
 .message-highlight {
-  animation: message-highlight 1s ease-in-out 2;
+  animation: message-highlight 1.2s ease-in-out 2;
 }
 
 @keyframes message-highlight {
   0%, 100% { background-color: transparent; }
-  50% { background-color: var(--color-accent); opacity: 0.2; }
+  50% { background-color: color-mix(in oklab, var(--color-primary) 14%, transparent); }
 }
 
 mark {
-  background-color: var(--color-chart-4);
+  background-color: var(--color-highlight);
   color: inherit;
   padding: 0 2px;
-  border-radius: 2px;
+  border-radius: 3px;
 }
 
 /* Sheet/Drawer animations */
@@ -123,25 +189,49 @@ mark {
   to { opacity: 0; }
 }
 
-.animate-in {
-  animation-duration: 300ms;
-  animation-timing-function: ease-out;
-  animation-fill-mode: forwards;
+/* `scale` (not transform) so it composes with translate-centered dialogs */
+@keyframes zoom-in-95 {
+  from { opacity: 0; scale: 0.95; }
+  to { opacity: 1; scale: 1; }
 }
 
-.animate-out {
-  animation-duration: 200ms;
-  animation-timing-function: ease-in;
-  animation-fill-mode: forwards;
+@keyframes zoom-out-95 {
+  from { opacity: 1; scale: 1; }
+  to { opacity: 0; scale: 0.95; }
 }
 
-.fade-in-0 { animation-name: fade-in; }
-.fade-out-0 { animation-name: fade-out; }
-.slide-in-from-left { animation-name: slide-in-from-left; }
-.slide-out-to-left { animation-name: slide-out-to-left; }
-.slide-in-from-right { animation-name: slide-in-from-right; }
-.slide-out-to-right { animation-name: slide-out-to-right; }
-.slide-in-from-top { animation-name: slide-in-from-top; }
-.slide-out-to-top { animation-name: slide-out-to-top; }
-.slide-in-from-bottom { animation-name: slide-in-from-bottom; }
-.slide-out-to-bottom { animation-name: slide-out-to-bottom; }
+@utility animate-in {
+  animation-duration: 260ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: both;
+}
+
+@utility animate-out {
+  animation-duration: 180ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 1, 1);
+  animation-fill-mode: both;
+}
+
+@utility fade-in-0 { animation-name: fade-in; }
+@utility fade-out-0 { animation-name: fade-out; }
+@utility zoom-in-95 { animation-name: zoom-in-95; }
+@utility zoom-out-95 { animation-name: zoom-out-95; }
+@utility slide-in-from-left { animation-name: slide-in-from-left; }
+@utility slide-out-to-left { animation-name: slide-out-to-left; }
+@utility slide-in-from-right { animation-name: slide-in-from-right; }
+@utility slide-out-to-right { animation-name: slide-out-to-right; }
+@utility slide-in-from-top { animation-name: slide-in-from-top; }
+@utility slide-out-to-top { animation-name: slide-out-to-top; }
+@utility slide-in-from-bottom { animation-name: slide-in-from-bottom; }
+@utility slide-out-to-bottom { animation-name: slide-out-to-bottom; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

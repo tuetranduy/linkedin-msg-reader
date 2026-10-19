@@ -5,16 +5,25 @@ export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
 }
 
-export function formatDate(date: Date): string {
+/** Whole calendar days between `date` and now (0 = today, 1 = yesterday) */
+function calendarDaysAgo(date: Date): number {
     const now = new Date()
-    const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+    const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+    return Math.round((startOfToday - startOfDate) / (1000 * 60 * 60 * 24))
+}
+
+export function formatDate(date: Date): string {
+    const diffInDays = calendarDaysAgo(date)
 
     if (diffInDays === 0) {
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     } else if (diffInDays === 1) {
         return 'Yesterday'
-    } else if (diffInDays < 7) {
-        return date.toLocaleDateString([], { weekday: 'long' })
+    } else if (diffInDays > 1 && diffInDays < 7) {
+        return date.toLocaleDateString([], { weekday: 'short' })
+    } else if (date.getFullYear() === new Date().getFullYear()) {
+        return date.toLocaleDateString([], { month: 'short', day: 'numeric' })
     } else {
         return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
     }
@@ -35,8 +44,7 @@ export function formatMessageDateTime(date: Date): string {
 }
 
 export function formatDateSeparator(date: Date): string {
-    const now = new Date()
-    const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
+    const diffInDays = calendarDaysAgo(date)
 
     if (diffInDays === 0) {
         return 'Today'
@@ -45,6 +53,40 @@ export function formatDateSeparator(date: Date): string {
     } else {
         return date.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
     }
+}
+
+export function getInitials(name: string | undefined | null): string {
+    if (!name) return '?'
+    return (
+        name
+            .split(/[\s&]+/)
+            .map((n) => n[0])
+            .filter(Boolean)
+            .slice(0, 2)
+            .join('')
+            .toUpperCase() || '?'
+    )
+}
+
+const AVATAR_COLORS = [
+    'bg-sky-100 text-sky-800 dark:bg-sky-900/60 dark:text-sky-200',
+    'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200',
+    'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200',
+    'bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-200',
+    'bg-violet-100 text-violet-800 dark:bg-violet-900/60 dark:text-violet-200',
+    'bg-teal-100 text-teal-800 dark:bg-teal-900/60 dark:text-teal-200',
+    'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-200',
+    'bg-orange-100 text-orange-800 dark:bg-orange-900/60 dark:text-orange-200',
+]
+
+/** Stable color classes for a name, so the same person always gets the same avatar color */
+export function getAvatarColor(name: string | undefined | null): string {
+    const str = name || '?'
+    let hash = 0
+    for (let i = 0; i < str.length; i++) {
+        hash = (hash * 31 + str.charCodeAt(i)) | 0
+    }
+    return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
 }
 
 export function isSameDay(date1: Date, date2: Date): boolean {

@@ -71,6 +71,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
               size="sm"
               onClick={onBack}
               className="px-2 lg:px-3"
+              aria-label="Back to messages"
             >
               <ArrowLeft className="h-4 w-4 lg:mr-1" />
               <span className="hidden sm:inline">Back to Messages</span>
@@ -82,6 +83,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
             size="sm"
             onClick={logout}
             className="px-2 lg:px-3"
+            aria-label="Log out"
           >
             <LogOut className="h-4 w-4 lg:mr-1" />
             <span className="hidden sm:inline">Logout</span>
@@ -90,42 +92,44 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
       </header>
 
       <div className="container mx-auto px-3 lg:px-4 py-4 lg:py-6">
-        <div className="flex flex-wrap gap-2 mb-4 lg:mb-6">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 lg:mb-6">
+          <div
+            role="tablist"
+            aria-label="Admin sections"
+            className="inline-flex w-full rounded-lg border border-border bg-muted/60 p-1 sm:w-auto"
+          >
+            {(
+              [
+                { id: "upload", label: "Upload CSV", short: "Upload", Icon: Upload },
+                { id: "conversations", label: "Conversations", short: "Chats", Icon: MessageSquare },
+                { id: "users", label: "Users", short: "Users", Icon: Users },
+              ] as const
+            ).map(({ id, label, short, Icon }) => (
+              <button
+                key={id}
+                role="tab"
+                aria-selected={tab === id}
+                onClick={() => setTab(id)}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex-none ${
+                  tab === id
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon aria-hidden="true" className="h-4 w-4" />
+                <span className="sm:hidden">{short}</span>
+                <span className="hidden sm:inline">{label}</span>
+              </button>
+            ))}
+          </div>
           <Button
             variant="outline"
             onClick={() => setShowRoomManager(true)}
             size="sm"
-            className="flex-1 sm:flex-none"
+            className="w-full sm:w-auto"
           >
-            <LayoutList className="h-4 w-4 sm:mr-1" />
-            <span className="hidden sm:inline">Room Manager</span>
-          </Button>
-          <Button
-            variant={tab === "upload" ? "default" : "outline"}
-            onClick={() => setTab("upload")}
-            size="sm"
-            className="flex-1 sm:flex-none"
-          >
-            <Upload className="h-4 w-4 sm:mr-1" />
-            <span className="hidden sm:inline">Upload CSV</span>
-          </Button>
-          <Button
-            variant={tab === "conversations" ? "default" : "outline"}
-            onClick={() => setTab("conversations")}
-            size="sm"
-            className="flex-1 sm:flex-none"
-          >
-            <MessageSquare className="h-4 w-4 sm:mr-1" />
-            <span className="hidden sm:inline">Conversations</span>
-          </Button>
-          <Button
-            variant={tab === "users" ? "default" : "outline"}
-            onClick={() => setTab("users")}
-            size="sm"
-            className="flex-1 sm:flex-none"
-          >
-            <Users className="h-4 w-4 sm:mr-1" />
-            <span className="hidden sm:inline">Users</span>
+            <LayoutList className="h-4 w-4" />
+            Room Manager
           </Button>
         </div>
 
@@ -163,10 +167,11 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
 
               {uploadStatus && (
                 <div
+                  role={uploadStatus.success ? "status" : "alert"}
                   className={`p-3 lg:p-4 rounded-lg flex items-center gap-2 lg:gap-3 text-sm ${
                     uploadStatus.success
-                      ? "bg-green-50 text-green-700"
-                      : "bg-red-50 text-red-700"
+                      ? "bg-success/10 text-success"
+                      : "bg-destructive/10 text-destructive"
                   }`}
                 >
                   {uploadStatus.success && (
